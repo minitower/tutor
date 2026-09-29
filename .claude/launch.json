@@ -1,0 +1,31 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "conferences-django",
+      "runtimeExecutable": "C:\\Users\\raven\\Projects\\tutor\\Валерия_ml\\web\\Lab 2\\main_task\\venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "C:\\Users\\raven\\Projects\\tutor\\Валерия_ml\\web\\Lab 2\\main_task\\manage.py",
+        "runserver",
+        "8000"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "course-slides",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "ai_dev_school/ai-agent-dev-course"],
+      "port": 8123
+    },
+    {
+      "name": "conferences-docs",
+      "runtimeExecutable": "C:\\Users\\raven\\Projects\\tutor\\Валерия_ml\\web\\Lab 2\\main_task\\venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "-m", "mkdocs", "serve",
+        "-f", "C:\\Users\\raven\\Projects\\tutor\\Валерия_ml\\web\\Lab 2\\main_task\\mkdocs.yml",
+        "-a", "127.0.0.1:8010"
+      ],
+      "port": 8010
+    }
+  ]
+}
