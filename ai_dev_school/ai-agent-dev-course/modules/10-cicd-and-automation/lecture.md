@@ -87,7 +87,7 @@ worked-out detail underneath it.
 
 ---
 
-## Hooks (Slides 6–8) — ~15 min
+## Hooks (Slides 6–13) — ~15 min
 
 ### Slide 6 — Hooks: Three Different Things Share One Name
 
@@ -122,7 +122,7 @@ different threat model. A git hook can be bypassed with `--no-verify` by
 anyone with local access. A Claude Code hook can't be argued around by
 the model, but it *can* be misconfigured by whoever writes the hook
 script. A CI hook runs somewhere you don't fully control the environment
-of, which is exactly why sandboxing — Slide 16 — matters so much for that
+of, which is exactly why sandboxing — Slide 24 — matters so much for that
 third category.
 
 ### Slide 7 — Git Hook Example
@@ -174,15 +174,100 @@ misjudge or override under enough context pressure.
 
 I'm deliberately not prescribing exactly what goes in that denylist right
 now — that's policy, not mechanism, and we get to the policy question in
-detail on Slides 13 through 15. Today, just fix the mechanism in your
+detail on Slides 21 through 23. Today, just fix the mechanism in your
 head: hooks are how you make a rule *true regardless of what the agent
 decides*, rather than a rule you're hoping the agent respects.
 
 ---
 
-## Scheduled and Triggered Agents (Slides 9–10) — ~10 min
+### Slide 9 — When an Agent System Needs Claude Code Hooks
 
-### Slide 9 — Scheduled Agents
+The most common question after the hooks slides: "when do I actually
+need this, if I can write a rule in CLAUDE.md?" Simple answer. In an
+interactive session a human is next to the agent, sees a suspicious
+command and clicks "deny". In CI, where the agent runs as `claude -p`,
+nobody is there. So anything that must be *always true* has to rest on a
+mechanism, not on a request.
+
+Walk the table top to bottom. A ban on dangerous commands is
+`PreToolUse`: it fires before the call and can block it. Auto-format
+after edits is `PostToolUse`: you're not hoping the agent remembers the
+formatter. "Don't say done while tests are red" is `Stop`. The audit log
+is the same `PostToolUse`, just writing to a file. Style and preferences
+are not hooks — that's an ordinary instruction in `CLAUDE.md`: if the
+agent slips once, nothing terrible happens.
+
+The one-line rule: irreversible, or must be 100% — hook; a preference —
+instruction.
+
+### Slide 10 — How to Add a Hook to a Project
+
+The mechanics in three steps. First, write a script. The harness passes
+it JSON on stdin: the tool name and its arguments — for `Bash`, the
+command. Second, register the script in a config. There are three
+places: `.claude/settings.json` lives in the repo and is shared by the
+team — policy goes here; `.claude/settings.local.json` is personal and
+stays out of git; `~/.claude/settings.json` applies in all your
+projects. Third, make the script executable and commit it.
+
+The slide's example wires three hooks: `PreToolUse` on `Bash` — blocks
+dangerous commands; `PostToolUse` on `Edit|Write` — runs the formatter
+after every edit; `Stop` — runs tests before the agent claims it's
+finished. `matcher` filters by tool name and is a regular expression.
+
+### Slide 11 — A Hook Script: Blocking the Dangerous
+
+Here's the script itself. It reads the JSON, extracts the command with
+`jq`, checks it against a blacklist and exits with a code. The exit-code
+convention is simple: zero — allow, two — block. The most useful
+property of a block: whatever you write to `stderr`, the harness hands to
+the *agent*. So make the message human: what was blocked and what to do
+instead. The agent reads it and proposes a safe path instead of
+banging on the wall.
+
+A separate note on the `Stop` hook. If it exits with 2, the agent can't
+finish and gets the output — usually failing tests. Elegant, but easy to
+loop: if the tests can't be fixed, the agent spins forever. So check the
+`stop_hook_active` field in the input JSON and skip a repeat run.
+
+### Slide 12 — How to Design Hooks
+
+Five principles. First: start from policy, not from a script. You
+already have a never-list; each line must become either a hook or a
+permission restriction. Second: a hook is deterministic code. No model
+calls inside: it must run in fractions of a second and always the same
+way.
+
+Third — what to do when the hook itself errors. For a dangerous action,
+closing is safer: couldn't parse the input — block. For conveniences like
+a formatter, do the opposite: let it pass; no reason to stop work
+because `ruff` crashed. Fourth — the `stderr` message: the agent reads
+it, so write it so the agent can correct itself.
+
+And fifth, honestly: a blacklist is brittle. A command can be wrapped in
+`sh -c`, base64-encoded, written in another language. So a hook is one
+layer, and permissions and a sandbox must stand next to it.
+
+### Slide 13 — Testing and Protecting Hooks
+
+A hook is policy code, so it deserves tests like any other code. The
+test is simple: run the script, feed it JSON with a dangerous command
+and check the exit code — two. Then a safe one — zero. Two such tests
+catch the most annoying mistake: you "set up protection" and the regex
+actually catches nothing.
+
+The other half of the slide is who guards the guard. If the agent may
+write to `.claude/` or `scripts/hooks/`, it can disable its own hook,
+even without malice, "tidying up". So those paths go in `CODEOWNERS` and
+writes to them are denied for the agent. And log the triggers: if a hook
+blocks the same command ten times a day, that's a reason to rethink the
+task or the prompt.
+
+---
+
+## Scheduled and Triggered Agents (Slides 14–15) — ~10 min
+
+### Slide 14 — Scheduled Agents
 
 Moving from "how do we enforce a boundary" to "what actually kicks the
 agent off in the first place." Scheduled agents run on a timer, with no
@@ -207,7 +292,7 @@ branches. Notice the pattern across all of these — the output is always
 a report or a proposal, never a direct mutation of something that
 matters.
 
-### Slide 10 — Triggered Agents
+### Slide 15 — Triggered Agents
 
 Triggered agents are the other half of "how does it start" — instead of
 a clock, a specific repository event fires the job. Here it's `on:
@@ -236,9 +321,58 @@ pushed.
 
 ---
 
-## Agents-in-CI Patterns (Slides 11–13) — ~15 min
+## CI/CD Platforms (Slides 16–18) — ~10 min
 
-### Slide 11 — Pattern 1: Auto-Fix Lint
+### Slide 16 — CI/CD Platforms: GitHub Actions and Alternatives
+
+So far every example used GitHub Actions, but the idea isn't tied to
+it. Any CI system does the same thing: on an event it spins up a clean
+environment and runs commands. The agent is just one more command:
+`claude -p` in headless mode takes a prompt and prints a result with no
+interactive dialogue.
+
+The table lists the five most common platforms. GitHub Actions also has
+a ready-made action from Anthropic, `anthropics/claude-code-action`, but
+a plain `run: claude -p` works too. What really differs between
+platforms is the config file, the set of events, and how secrets and
+token permissions are issued. Choose the one where your repo already
+lives: no need to migrate for the agent.
+
+### Slide 17 — The Same Agent in GitLab CI
+
+To see what transfers one-to-one — the same agent, but in
+`.gitlab-ci.yml`. Instead of `on: pull_request` there's a `rules` block
+with `merge_request_event`. Instead of `runs-on` — `image`. The command
+is the same: `claude -p`.
+
+Note the three limiters. `timeout` caps time. `--max-turns` caps the
+agent's steps. `--allowedTools` — the agent can only read. The MR
+comment is posted by a separate step with a narrow token. The API key
+lives in a masked and protected CI variable, not in the repo. These are
+the same principles as on GitHub: boundaries are set by configuration,
+not by the prompt.
+
+### Slide 18 — Common Requirements for an Agent on Any CI Platform
+
+Whatever you pick, the checklist is one. Secrets — only in protected
+variables. The job token is minimal; where the platform supports OIDC,
+use it instead of long-lived cloud keys.
+
+Separately — PRs from forks. A foreign PR is untrusted code and text,
+exactly the content prompt injection from Module 9 is made of. So
+secrets aren't passed to those runs, and `pull_request_target` on
+GitHub, which runs in the main repo's context, with foreign code is a
+direct road to an incident.
+
+And limits: timeout, step count, `concurrency` so one PR doesn't start
+two agents, and an API budget. And keep the agent's log and output as
+an artifact — without it there's nothing to investigate.
+
+---
+
+## Agents-in-CI Patterns (Slides 19–21) — ~15 min
+
+### Slide 19 — Pattern 1: Auto-Fix Lint
 
 This is probably the single most common agents-in-CI pattern in the wild
 right now, so let's get it exactly right. Trigger: PR opened or updated.
@@ -264,7 +398,7 @@ lower the bar — if anything, given what we covered on hallucinated
 behavior in Module 9, it might raise it slightly, at least until your
 team has a track record with this specific automation.
 
-### Slide 12 — Pattern 2: Issue Triage
+### Slide 20 — Pattern 2: Issue Triage
 
 Second pattern, and notice the risk profile is genuinely different from
 the first. Trigger: a new issue is opened. Action: the agent labels it,
@@ -291,7 +425,7 @@ agents-in-CI patterns by "what's the actual blast radius of the worst
 case" is a habit I want you to build, and we'll use it again on the
 never-list in a few slides.
 
-### Slide 13 — Pattern 3: Draft Release Notes
+### Slide 21 — Pattern 3: Draft Release Notes
 
 Third pattern, and this one exists specifically to teach a vocabulary
 distinction that matters for the rest of the module. Trigger: a tag gets
@@ -318,9 +452,9 @@ at "I've read it and I'm choosing to make it public."
 
 ---
 
-## Permission Scopes and Sandboxing (Slides 14–16) — ~15 min
+## Permission Scopes and Sandboxing (Slides 22–24) — ~15 min
 
-### Slide 14 — Permission Scopes for Unattended Agents
+### Slide 22 — Permission Scopes for Unattended Agents
 
 We've now seen three patterns; let's get precise about the mechanism
 that keeps them safe, because "safe by construction" isn't magic, it's
@@ -346,7 +480,7 @@ task doesn't specifically require one of these, don't grant it "just in
 case." Every capability you grant "just in case" is a capability that's
 sitting there the day something goes wrong.
 
-### Slide 15 — The Never-Without-a-Gate List
+### Slide 23 — The Never-Without-a-Gate List
 
 This is the list I want you to actually memorize — not paraphrase, not
 approximately recall, memorize — because it's short enough to memorize
@@ -374,7 +508,7 @@ deciding whether some new action your agent wants to take belongs on
 this list: if I re-ran the job right now, would that undo the damage? If
 no, it needs a human gate, unconditionally.
 
-### Slide 16 — Sandboxing: Limiting the Blast Radius
+### Slide 24 — Sandboxing: Limiting the Blast Radius
 
 Permission scoping tells the agent what it's *allowed* to ask for.
 Sandboxing is the second, independent layer — it limits the damage *if*
@@ -403,9 +537,9 @@ into next quarter's security incident.
 
 ---
 
-## Human-in-the-Loop Gates (Slides 17–19) — ~15 min
+## Human-in-the-Loop Gates (Slides 25–31) — ~15 min
 
-### Slide 17 — Designing the Gate: No Human Watching Live
+### Slide 25 — Designing the Gate: No Human Watching Live
 
 We've spent three sections on "what should the agent never do" and "how
 do we contain it if it tries anyway." Now the constructive half: how do
@@ -434,7 +568,7 @@ not simulating a human watching — you're replacing "a human watches" with
 "the system refuses to proceed without a specific, checkable condition
 being true."
 
-### Slide 18 — Gate Example: Branch Protection + Required Review
+### Slide 26 — Gate Example: Branch Protection + Required Review
 
 Let's make that concrete. This is illustrative configuration — I want to
 be upfront that this isn't a YAML file you literally paste somewhere;
@@ -459,7 +593,7 @@ the agent "intends" to do. It mechanically blocks the merge until the
 condition is satisfied. That difference — suggestion versus wall — is
 the entire reason this module exists.
 
-### Slide 19 — Anti-Patterns to Avoid
+### Slide 27 — Anti-Patterns to Avoid
 
 Let's close this section with four ways teams get this wrong in
 practice, because I promise you, you will see at least one of these in
@@ -495,14 +629,82 @@ any one job justified on its own.
 
 ---
 
-## Lab and Deliverable (Slides 20–21) — ~10 min intro, remainder hands-on
+### Slide 28 — Patterns That Work Instead of Anti-Patterns
 
-### Slide 20 — Lab: Wire an Agent into a Pipeline
+Anti-patterns are easy to remember as "don't do this", but it's more
+useful to know what to do instead. Walk the table row by row. Agent
+reviews its own PR — create a separate identity for the reviewer with
+read and comment rights only, and leave approval to a human or
+`CODEOWNERS`. Broad token — issue a per-job token with `permissions:`
+exactly for the task.
+
+Silent auto-merge isn't necessarily evil: for a narrow low-risk class,
+say patch dependency bumps with a full test suite, it's acceptable, but
+through a merge queue and required checks. Split the shared token into
+bots by role. Replace "ask before merge" in the prompt with branch
+protection. And last: protect the agent's own hooks and CI configs from
+it, or it can lift the restrictions itself.
+
+### Slide 29 — An Agent-Only System: Architecture
+
+How to build a system where only agents execute. The scheme is a
+pipeline. An issue reaches the Planner: it reads the repo and writes a
+plan into the issue. The Implementer writes code only to its own branch
+and opens a PR. Next it isn't an agent but ordinary CI gates: tests,
+linters, scanners. Then the Reviewer — another agent, another identity,
+read and comment only. And the merge queue merges only if checks are
+green and policy is satisfied.
+
+The key idea is alternation. Agents don't check each other directly:
+between them stand deterministic gates that can't be "persuaded". If a
+gate is red or the reviewer disagrees, we send it back to the
+Implementer, but with an iteration limit; limit exhausted — escalate to
+a human. The human in such a system doesn't execute but owns the
+policy: writes the boundaries, samples results, handles escalations.
+
+### Slide 30 — Rules for a System of Agents
+
+Four design rules. First — roles differ in identity and permissions:
+whoever writes cannot approve. Second — communicate through artifacts.
+Don't shuttle a huge shared context from agent to agent: let one leave a
+plan in the issue and another read it. Then state lives in git, a human
+can see it, it can be resumed after a failure and rolled back.
+
+Third — deterministic gates stand between agents. If a model checks a
+model, their blind spots may coincide. Tests and scanners don't share a
+model's blind spots. Fourth — idempotency: CI may start the agent twice,
+and the second run must not open a second identical PR. Look for an
+existing one first, then create.
+
+### Slide 31 — Safety Limits, Observability, and the Human's Place
+
+A system of agents without safety limits is a generator of bills and
+incidents. Budgets: a ceiling on steps, time, the number of "fix —
+verify" iterations — three attempts and enough — and a cost ceiling per
+job and per day. Kill switch: one variable that turns off all agents;
+the main thing is to check at least once that it works.
+
+Observability: without logs you won't understand what the agent did.
+Keep the hook and action logs, count the revert rate, the escalation
+rate and the price of one PR — these are your instruments. And
+escalation: an agent that is unsure or hit a limit must call a human,
+not guess.
+
+The last point matters. "Agents only" means "no human in the execution
+loop", not "nobody accountable". A human owns policy and audit;
+otherwise nobody bears responsibility and nobody improves the
+boundaries.
+
+---
+
+## Lab and Deliverable (Slides 32–33) — ~10 min intro, remainder hands-on
+
+### Slide 32 — Lab: Wire an Agent into a Pipeline
 
 Here's today's hands-on work. Pick one of two options — don't do both,
 depth beats breadth here. Option one: wire up lint auto-fix on PR open,
 committing to the PR's own branch, with human review required before
-merge — essentially building out Pattern 1 from Slide 11 for real, in
+merge — essentially building out Pattern 1 from Slide 19 for real, in
 your own sample repo. Option two: draft a `CHANGELOG.md` entry from the
 commits since the last tag, opened as a PR, and — this is the part
 people skip if you don't say it out loud — never auto-merged under any
@@ -523,7 +725,7 @@ it — this is exactly the kind of task that looks like fifteen minutes of
 YAML and turns into forty-five minutes once you actually try to get the
 permissions and the gate right.
 
-### Slide 21 — Deliverable
+### Slide 33 — Deliverable
 
 When you're done, you're handing in two things. First, obviously, the
 working pipeline config itself — the workflow file or hook script you
@@ -532,20 +734,20 @@ listing exactly what this automation is *not* allowed to do unattended,
 and why each of those boundaries exists.
 
 Don't write vague boundaries — tie each one back to something specific.
-Either it maps directly onto the never-list from Slide 15 — "this can't
+Either it maps directly onto the never-list from Slide 23 — "this can't
 force-push because history rewrites aren't undoable by re-running" — or
 it's a risk specific to your project that you identified yourself, which
 is honestly the more interesting kind of answer, because it shows you
 internalized the *reasoning*, not just the list. If your note reads like
-you copy-pasted the four bullets from Slide 15 with no connection to your
+you copy-pasted the four bullets from Slide 23 with no connection to your
 actual pipeline, that's a sign you haven't actually thought through what
 your specific automation could do wrong.
 
 ---
 
-## Recap & Next Module (Slide 22) — ~5 min
+## Recap & Next Module (Slide 34) — ~5 min
 
-### Slide 22 — Recap & Next Module
+### Slide 34 — Recap & Next Module
 
 Let's land the plane. Three things to leave with today.
 

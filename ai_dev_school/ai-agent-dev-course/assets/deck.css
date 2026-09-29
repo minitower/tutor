@@ -205,12 +205,12 @@ html, body {
 /* --- trace log (annotated agent steps) --- */
 .trace-log { list-style: none; padding: 0; margin: 1rem 0; display: flex; flex-direction: column; gap: .5rem; max-width: 950px; }
 .trace-log li {
-  display: flex; align-items: baseline; gap: .9rem;
+  display: block;
   background: var(--card); border: 1px solid var(--border); border-radius: 10px;
   padding: .55rem 1rem; font-family: var(--mono); font-size: 1rem;
 }
 .trace-log .tag {
-  flex: 0 0 auto; font-family: var(--font); font-weight: 700; font-size: .68rem;
+  display: inline-block; margin-right: .9rem; font-family: var(--font); font-weight: 700; font-size: .68rem;
   letter-spacing: .05em; padding: .25rem .55rem; border-radius: 999px; text-transform: uppercase;
 }
 .trace-log .tag.plan { background: rgba(124,156,255,.15); color: var(--accent); }

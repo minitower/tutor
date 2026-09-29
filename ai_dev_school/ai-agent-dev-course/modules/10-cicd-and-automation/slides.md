@@ -20,11 +20,12 @@ size: 16:9
 ## Agenda
 
 - Why put an agent *inside* a pipeline at all
-- Hooks: git hooks vs. Claude Code hooks vs. CI hooks
-- Scheduled and triggered agents
+- Hooks: git hooks vs. Claude Code hooks vs. CI hooks; when hooks are needed and how to design them
+- Scheduled and triggered agents; GitHub Actions, GitLab CI and other platforms
 - Agents-in-CI patterns: lint auto-fix, issue triage, release notes
 - Permission scopes and sandboxing for unattended agents
 - Designing a human-in-the-loop gate with no human watching live
+- Good patterns and a system where only agents execute
 - Lab: wire an agent into one CI step or git hook, with a gate
 
 ---
@@ -129,11 +130,120 @@ fi
 
 - Enforced by the harness, **outside** the model's control — the agent
   cannot reason its way past a hook that denies the call
-- This is the mechanism, not the policy — Slides 13–15 cover what to deny
+- This is the mechanism, not the policy — Slides 21–23 cover what to deny
 
 ---
 
 <!-- Slide 9 -->
+
+## When an Agent System Needs Claude Code Hooks
+
+| Situation | What to use |
+|---|---|
+| "Never `rm -rf` or force-push" — must always be true | `PreToolUse` — block |
+| Auto-format and lint after every edit | `PostToolUse` (`Edit\|Write`) |
+| "Don't say 'done' while tests are red" | `Stop` |
+| Audit log: what the unattended agent ran | `PostToolUse` → log |
+| Inject context (branch, ticket number) | `SessionStart` / `UserPromptSubmit` |
+| Style, preferences, "better this way" | **not a hook** — `CLAUDE.md` |
+
+- In CI (`claude -p`) there's no human to click "deny" — hooks and
+  permissions are the **only** wall
+- Rule: irreversible or must be 100% → hook; a preference → instruction
+
+---
+
+<!-- Slide 10 -->
+
+## How to Add a Hook to a Project
+
+1. Write a script: `scripts/hooks/block-dangerous-bash.sh` — input is
+   JSON on stdin (`tool_name`, `tool_input`)
+2. Register it in the config and commit
+3. `chmod +x scripts/hooks/*.sh`
+
+Where the config lives: `.claude/settings.json` — shared, in git;
+`.claude/settings.local.json` — personal, not in git;
+`~/.claude/settings.json` — for all your projects.
+
+```json
+{ "hooks": {
+  "PreToolUse":  [{ "matcher": "Bash",
+    "hooks": [{ "type": "command", "command": "scripts/hooks/block-dangerous-bash.sh" }] }],
+  "PostToolUse": [{ "matcher": "Edit|Write",
+    "hooks": [{ "type": "command", "command": "ruff format ." }] }],
+  "Stop": [{ "hooks": [{ "type": "command", "command": "scripts/hooks/run-tests.sh" }] }]
+} }
+```
+
+---
+
+<!-- Slide 11 -->
+
+## A Hook Script: Blocking the Dangerous
+
+```bash
+#!/usr/bin/env bash
+# scripts/hooks/block-dangerous-bash.sh — input: JSON on stdin (needs jq)
+cmd=$(jq -r '.tool_input.command')
+if echo "$cmd" | grep -qE 'rm -rf|git push.* (--force|-f)( |$)|curl .*\| *(sh|bash)'; then
+  echo "Blocked by policy: $cmd. Suggest a safe alternative." >&2
+  exit 2
+fi
+exit 0
+```
+
+- `exit 0` — allow; `exit 2` — **block**, and `stderr` goes to the
+  agent, which reads the reason and tries something else
+- A `Stop` hook with `exit 2` keeps the agent from finishing while
+  tests are red — check the `stop_hook_active` field to avoid looping
+
+---
+
+<!-- Slide 12 -->
+
+## How to Design Hooks
+
+- **Start from policy.** Every line of the never-list becomes a hook or
+  a permission; not the other way round
+- **Deterministic and fast:** no LLM inside, fractions of a second,
+  predictable outcome
+- **Fail-closed for dangerous things:** an error in the hook itself =
+  block. **Fail-open for conveniences:** a crashed formatter shouldn't
+  stall the work
+- **A clear message in `stderr`** — the agent reads it
+- **A blacklist is brittle:** `sh -c "..."`, base64, another language
+  slips past a regex. A hook complements permissions and the sandbox,
+  it doesn't replace them; use an allowlist where you can
+
+---
+
+<!-- Slide 13 -->
+
+## Testing and Protecting Hooks
+
+A hook is policy code, so it has tests:
+
+```python
+# tests/hooks/test_block_dangerous.py
+import json, subprocess
+
+def run(cmd):
+    p = subprocess.run(["scripts/hooks/block-dangerous-bash.sh"], text=True,
+                       input=json.dumps({"tool_input": {"command": cmd}}))
+    return p.returncode
+
+def test_blocks_force_push(): assert run("git push --force") == 2
+def test_allows_status():     assert run("git status") == 0
+```
+
+- Protect the hooks themselves: `.claude/` and `scripts/hooks/` go in
+  `CODEOWNERS` and under a write-deny rule for the agent
+- Log every trigger: a block is a signal, not noise
+
+---
+
+<!-- Slide 14 -->
 
 ## Scheduled Agents
 
@@ -158,7 +268,7 @@ jobs:
 
 ---
 
-<!-- Slide 10 -->
+<!-- Slide 15 -->
 
 ## Triggered Agents
 
@@ -182,7 +292,68 @@ jobs:
 
 ---
 
-<!-- Slide 11 -->
+<!-- Slide 16 -->
+
+## CI/CD Platforms: GitHub Actions and Alternatives
+
+| Platform | Config | Triggers | Running the agent |
+|---|---|---|---|
+| **GitHub Actions** | `.github/workflows/*.yml` | `pull_request`, `issues`, `schedule`, tags | `run: claude -p ...` or `anthropics/claude-code-action` |
+| **GitLab CI/CD** | `.gitlab-ci.yml` | `merge_request_event`, pipeline schedules | `script: claude -p ...` |
+| **Jenkins** | `Jenkinsfile` | webhook, `cron` | `sh 'claude -p ...'` |
+| **CircleCI** | `.circleci/config.yml` | webhook, scheduled pipelines | `run: claude -p ...` |
+| **Bitbucket / Azure Pipelines** | `bitbucket-pipelines.yml` / `azure-pipelines.yml` | PR, schedule | `script:` |
+
+- Headless `claude -p` works on any platform — triggers, secrets and
+  token permissions differ, not the idea
+
+---
+
+<!-- Slide 17 -->
+
+## The Same Agent in GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+agent-review:
+  image: node:22
+  timeout: 10 minutes
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - npm install -g @anthropic-ai/claude-code
+    - >
+      claude -p "Review this MR's diff against the review checklist.
+      Comments only, change nothing."
+      --allowedTools "Read,Grep,Glob" --max-turns 10
+  # ANTHROPIC_API_KEY — masked and protected CI variable
+```
+
+- `rules` is the analog of `on: pull_request`; `timeout` and
+  `--max-turns` cap time and steps
+- `--allowedTools` — the agent only reads: posting the comment is a
+  separate step with a narrow token
+
+---
+
+<!-- Slide 18 -->
+
+## Common Requirements for an Agent on Any CI Platform
+
+- **Secrets** — masked/protected variables; not in the repo, not in
+  logs, not in the prompt
+- **Minimal job token:** `permissions:` (GitHub), `CI_JOB_TOKEN` with a
+  restricted scope (GitLab); OIDC instead of long-lived cloud keys
+- **PRs from forks** get no secrets; `pull_request_target` with
+  foreign code on GitHub is dangerous — the agent will read and act on
+  untrusted content (see Module 9, prompt injection)
+- **Limits:** `timeout`, `--max-turns`, `concurrency` (don't run twice
+  per PR), API budget
+- **Audit:** keep the agent's log and output as a job artifact
+
+---
+
+<!-- Slide 19 -->
 
 ## Pattern 1 — Auto-Fix Lint
 
@@ -196,7 +367,7 @@ jobs:
 
 ---
 
-<!-- Slide 12 -->
+<!-- Slide 20 -->
 
 ## Pattern 2 — Issue Triage
 
@@ -209,7 +380,7 @@ jobs:
 
 ---
 
-<!-- Slide 13 -->
+<!-- Slide 21 -->
 
 ## Pattern 3 — Draft Release Notes
 
@@ -221,7 +392,7 @@ jobs:
 
 ---
 
-<!-- Slide 14 -->
+<!-- Slide 22 -->
 
 ## Permission Scopes for Unattended Agents
 
@@ -236,7 +407,7 @@ jobs:
 
 ---
 
-<!-- Slide 15 -->
+<!-- Slide 23 -->
 
 ## The Never-Without-a-Gate List
 
@@ -253,7 +424,7 @@ approval step**, no matter how convenient:
 
 ---
 
-<!-- Slide 16 -->
+<!-- Slide 24 -->
 
 ## Sandboxing — Limiting the Blast Radius
 
@@ -273,7 +444,7 @@ permissions:
 
 ---
 
-<!-- Slide 17 -->
+<!-- Slide 25 -->
 
 ## Designing the Gate: No Human Watching Live
 
@@ -289,7 +460,7 @@ permissions:
 
 ---
 
-<!-- Slide 18 -->
+<!-- Slide 26 -->
 
 ## Gate Example: Branch Protection + Required Review
 
@@ -309,7 +480,7 @@ branch_protection:
 
 ---
 
-<!-- Slide 19 -->
+<!-- Slide 27 -->
 
 ## Anti-Patterns to Avoid
 
@@ -325,7 +496,73 @@ branch_protection:
 
 ---
 
-<!-- Slide 20 -->
+<!-- Slide 28 -->
+
+## Patterns That Work Instead of Anti-Patterns
+
+| Anti-pattern | Pattern instead |
+|---|---|
+| Agent reviews its own PR | A separate identity for the reviewer (read-only + comments); a human or `CODEOWNERS` approves |
+| Broad token, narrow prompt | Per-job token with `permissions:` exactly for the task; OIDC |
+| Silent auto-merge | Merge queue + required checks; auto-merge only for a low-risk class with tests |
+| One shared bot token | A separate bot account per role: triage, lint-fix, release |
+| "Ask before merge" in the prompt | Branch protection in repo settings |
+| Agent edits its own hooks and CI | `CODEOWNERS` on `.github/`, `.claude/`, `scripts/hooks/` |
+
+---
+
+<!-- Slide 29 -->
+
+## An Agent-Only System: Architecture
+
+**Issue** → **Planner** → **Implementer** → **CI gates** → **Reviewer** → **Merge queue**
+
+| Role | Permissions |
+|---|---|
+| Planner | reads the repo, writes the plan into the issue |
+| Implementer | writes only to its own branch, opens the PR |
+| CI gates | tests, linters, scanners — ordinary code, not an LLM |
+| Reviewer | read-only + comments, a different identity |
+| Merge queue | merges only on green checks and policy |
+
+Human: writes the policy, audits by sampling, receives escalations
+
+---
+
+<!-- Slide 30 -->
+
+## Rules for a System of Agents
+
+- **Roles = different identities and permissions.** No role approves
+  its own work
+- **They communicate through artifacts**, not a shared context: issue,
+  PR, spec file, status file. State lives in git — resumable,
+  checkable, revertable
+- **Deterministic gates between agents:** an LLM is not the only judge
+  of an LLM
+- **Idempotency:** a re-run doesn't create duplicate PRs and comments
+  (look for an existing one before creating)
+
+---
+
+<!-- Slide 31 -->
+
+## Safety Limits, Observability, and the Human's Place
+
+- **Budgets:** `--max-turns`, `timeout`, an iteration cap on "fix →
+  verify" (say 3), a cost ceiling per job and per day
+- **Kill switch:** a flag or variable that turns off all agents at
+  once — check it really works
+- **Observability:** hook logs, the agent's action log as an artifact,
+  metrics: revert rate, escalation rate, cost per PR
+- **Escalation:** an agent that is unsure or hit a limit must call a
+  human, not guess
+- **"Agents only" ≠ "nobody accountable":** a human owns the policy and
+  the sampled audit
+
+---
+
+<!-- Slide 32 -->
 
 ## Lab — Wire an Agent into a Pipeline
 
@@ -342,19 +579,19 @@ Requirements:
 
 ---
 
-<!-- Slide 21 -->
+<!-- Slide 33 -->
 
 ## Deliverable
 
 - The working pipeline config (workflow YAML / hook script)
 - A short written note listing what this automation is **not** allowed
   to do unattended — and *why* each boundary was chosen
-  - tie each boundary back to Slide 15's never-list or a project-specific
+  - tie each boundary back to Slide 23's never-list or a project-specific
     risk you identified
 
 ---
 
-<!-- Slide 22 -->
+<!-- Slide 34 -->
 
 ## Recap & Next Module
 

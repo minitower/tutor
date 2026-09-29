@@ -21,11 +21,12 @@
   <h2>План занятия</h2>
   <ul>
     <li>Зачем вообще пускать агента внутрь пайплайна</li>
-    <li>Хуки: git-хуки vs. хуки Claude Code vs. хуки CI</li>
-    <li>Агенты по расписанию и по триггеру</li>
+    <li>Хуки: git-хуки vs. хуки Claude Code vs. хуки CI; когда хуки нужны и как их проектировать</li>
+    <li>Агенты по расписанию и по триггеру; GitHub Actions, GitLab CI и другие платформы</li>
     <li>Паттерны «агент в CI»: автоисправление линтера, триаж issue, release notes</li>
     <li>Области прав доступа и песочницы для агента без присмотра</li>
     <li>Проектирование шага подтверждения, когда рядом нет живого человека</li>
+    <li>Хорошие паттерны и система, где исполняют только агенты</li>
     <li>Лабораторная: подключаем агента к одному шагу CI или git-хуку, с гейтом</li>
   </ul>
 </section>
@@ -112,6 +113,82 @@ fi</code></pre>
 </section>
 
 <section class="slide">
+  <h2>Когда хуки Claude Code нужны агентной системе</h2>
+  <table style="font-size:.9em;">
+    <tr><th>Ситуация</th><th>Что использовать</th></tr>
+    <tr><td>«Никогда <code>rm -rf</code> и force-push» — должно быть истинным всегда</td><td><code>PreToolUse</code> — блок</td></tr>
+    <tr><td>Автоформат и линт после каждой правки</td><td><code>PostToolUse</code> (<code>Edit|Write</code>)</td></tr>
+    <tr><td>«Не говори «готово» при красных тестах»</td><td><code>Stop</code></td></tr>
+    <tr><td>Аудит-лог: что агент без присмотра запускал</td><td><code>PostToolUse</code> → лог</td></tr>
+    <tr><td>Подмешать контекст (ветка, номер тикета)</td><td><code>SessionStart</code> / <code>UserPromptSubmit</code></td></tr>
+    <tr><td>Стиль, предпочтения, «лучше так»</td><td><strong>не хук</strong> — <code>CLAUDE.md</code></td></tr>
+  </table>
+  <p>В CI (<code>claude -p</code>) нет человека, который нажмёт «запретить», — хук и права остаются <strong>единственной</strong> стеной. Правило: необратимо или нужно 100% → хук; предпочтение → инструкция.</p>
+</section>
+
+<section class="slide">
+  <h2>Как добавить хук в проект</h2>
+  <ol>
+    <li>Напишите скрипт <code>scripts/hooks/block-dangerous-bash.sh</code> — вход это JSON на stdin (<code>tool_name</code>, <code>tool_input</code>)</li>
+    <li>Подключите в конфиге, <code>chmod +x</code>, закоммитьте</li>
+  </ol>
+  <p><code>.claude/settings.json</code> — общий, в git · <code>.claude/settings.local.json</code> — личный, вне git · <code>~/.claude/settings.json</code> — для всех ваших проектов.</p>
+  <pre><code style="font-size:.78rem; line-height:1.3;">{ "hooks": {
+  "PreToolUse":  [{ "matcher": "Bash",
+    "hooks": [{ "type": "command", "command": "scripts/hooks/block-dangerous-bash.sh" }] }],
+  "PostToolUse": [{ "matcher": "Edit|Write",
+    "hooks": [{ "type": "command", "command": "ruff format ." }] }],
+  "Stop": [{ "hooks": [{ "type": "command", "command": "scripts/hooks/run-tests.sh" }] }]
+} }</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Скрипт хука: блокируем опасное</h2>
+  <pre><code style="font-size:.82rem; line-height:1.35;">#!/usr/bin/env bash
+# scripts/hooks/block-dangerous-bash.sh — вход: JSON на stdin (нужен jq)
+cmd=$(jq -r '.tool_input.command')
+if echo "$cmd" | grep -qE 'rm -rf|git push.* (--force|-f)( |$)|curl .*\| *(sh|bash)'; then
+  echo "Заблокировано политикой: $cmd. Предложи безопасную альтернативу." &gt;&amp;2
+  exit 2
+fi
+exit 0</code></pre>
+  <ul>
+    <li><code>exit 0</code> — разрешить; <code>exit 2</code> — <strong>заблокировать</strong>, а <code>stderr</code> уходит агенту: он читает причину и пробует иначе</li>
+    <li><code>Stop</code>-хук с <code>exit 2</code> не даёт агенту закончить, пока тесты красные — проверяйте поле <code>stop_hook_active</code>, чтобы не зациклиться</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Как проектировать хуки</h2>
+  <ul>
+    <li><strong>Начинайте с политики.</strong> Каждая строка списка «никогда» — это хук или право; не наоборот</li>
+    <li><strong>Детерминированные и быстрые:</strong> без LLM внутри, доли секунды, предсказуемый результат</li>
+    <li><strong>Fail-closed для опасного:</strong> ошибка самого хука = блок. <strong>Fail-open для удобств:</strong> упавший форматтер не должен стопорить работу</li>
+    <li><strong>Понятное сообщение в <code>stderr</code></strong> — его читает агент</li>
+    <li><strong>Чёрный список хрупок:</strong> <code>sh -c "..."</code>, base64, другой язык обходят регулярку. Хук дополняет права и песочницу, но не заменяет; где можно — allowlist</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Тестируем и защищаем хуки</h2>
+  <p>Хук — это код политики, значит, у него есть тесты:</p>
+  <pre><code style="font-size:.8rem; line-height:1.3;"># tests/hooks/test_block_dangerous.py
+import json, subprocess
+
+def run(cmd):
+    p = subprocess.run(["scripts/hooks/block-dangerous-bash.sh"], text=True,
+                       input=json.dumps({"tool_input": {"command": cmd}}))
+    return p.returncode
+
+def test_blocks_force_push(): assert run("git push --force") == 2
+def test_allows_status():     assert run("git status") == 0</code></pre>
+  <ul>
+    <li>Защитите сами хуки: <code>.claude/</code> и <code>scripts/hooks/</code> — в <code>CODEOWNERS</code> и под deny-правилом записи для агента</li>
+    <li>Логируйте каждое срабатывание: блок — это сигнал, а не мусор</li>
+  </ul>
+</section>
+
+<section class="slide">
   <h2>Агенты по расписанию</h2>
   <p>Запускаются по таймеру, без триггерного события — например, ночной аудит зависимостей, еженедельная чистка устаревших issue.</p>
   <pre><code># .github/workflows/nightly-audit.yml
@@ -143,6 +220,51 @@ jobs:
       - run: claude -p "Запусти линтер; исправь только его замечания;
                          закоммить как 'lint: auto-fix' в эту ветку."</code></pre>
   <p>Событийная область видимости = агент видит только диф, относящийся именно к этому PR.</p>
+</section>
+
+<section class="slide">
+  <h2>CI/CD-платформы: GitHub Actions и альтернативы</h2>
+  <table style="font-size:.82em;">
+    <tr><th>Платформа</th><th>Конфиг</th><th>Триггеры</th><th>Запуск агента</th></tr>
+    <tr><td><strong>GitHub Actions</strong></td><td><code>.github/workflows/*.yml</code></td><td><code>pull_request</code>, <code>issues</code>, <code>schedule</code>, теги</td><td><code>run: claude -p ...</code> или <code>anthropics/claude-code-action</code></td></tr>
+    <tr><td><strong>GitLab CI/CD</strong></td><td><code>.gitlab-ci.yml</code></td><td><code>merge_request_event</code>, pipeline schedules</td><td><code>script: claude -p ...</code></td></tr>
+    <tr><td><strong>Jenkins</strong></td><td><code>Jenkinsfile</code></td><td>webhook, <code>cron</code></td><td><code>sh 'claude -p ...'</code></td></tr>
+    <tr><td><strong>CircleCI</strong></td><td><code>.circleci/config.yml</code></td><td>webhook, scheduled pipelines</td><td><code>run: claude -p ...</code></td></tr>
+    <tr><td><strong>Bitbucket / Azure</strong></td><td><code>bitbucket-pipelines.yml</code> / <code>azure-pipelines.yml</code></td><td>PR, расписание</td><td><code>script:</code></td></tr>
+  </table>
+  <p>Headless <code>claude -p</code> работает на любой платформе — отличаются триггеры, секреты и права токена, а не идея.</p>
+</section>
+
+<section class="slide">
+  <h2>Тот же агент в GitLab CI</h2>
+  <pre><code style="font-size:.82rem; line-height:1.35;"># .gitlab-ci.yml
+agent-review:
+  image: node:22
+  timeout: 10 minutes
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - npm install -g @anthropic-ai/claude-code
+    - &gt;
+      claude -p "Проверь дифф этого MR по чек-листу ревью.
+      Только комментарии, ничего не меняй."
+      --allowedTools "Read,Grep,Glob" --max-turns 10
+  # ANTHROPIC_API_KEY — masked и protected переменная CI</code></pre>
+  <ul>
+    <li><code>rules</code> — аналог <code>on: pull_request</code>; <code>timeout</code> и <code>--max-turns</code> — потолок времени и шагов</li>
+    <li><code>--allowedTools</code> — агент только читает: комментарий делает отдельный шаг с узким токеном</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Общие требования к агенту в любой CI-платформе</h2>
+  <ul>
+    <li><strong>Секреты</strong> — masked/protected переменные; не в репозитории, не в логах, не в промпте</li>
+    <li><strong>Токен job — минимальный:</strong> <code>permissions:</code> (GitHub), <code>CI_JOB_TOKEN</code> с ограниченной областью (GitLab); OIDC вместо долгоживущих облачных ключей</li>
+    <li><strong>PR из форков</strong> не получают секретов; <code>pull_request_target</code> с чужим кодом на GitHub опасен — агент прочитает и исполнит недоверенный контент (модуль 9, prompt injection)</li>
+    <li><strong>Пределы:</strong> <code>timeout</code>, <code>--max-turns</code>, <code>concurrency</code> (не запускать дважды на один PR), бюджет API</li>
+    <li><strong>Аудит:</strong> сохраняйте лог и вывод агента как артефакт job</li>
+  </ul>
 </section>
 
 <section class="slide">
@@ -264,6 +386,59 @@ branch_protection:
     <li><strong>Широкий токен, узкий промпт</strong> — «просто не делай force-push» в промпте, при этом креденшл технически может его сделать — граница должна работать там, где агент не может с ней «поспорить»</li>
     <li><strong>Тихий автомерж</strong> — любой путь, где «тесты прошли» само по себе мержит в <code>main</code> без шага ревью, убирает гейт, который вы только что спроектировали</li>
     <li><strong>Один общий токен бота на всё</strong> — один скомпрометированный job получает все права, которые вообще нужны были хоть одному job</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Паттерны, которые работают вместо антипаттернов</h2>
+  <table style="font-size:.88em;">
+    <tr><th>Антипаттерн</th><th>Паттерн вместо него</th></tr>
+    <tr><td>Агент ревьюит собственный PR</td><td>Отдельная identity у ревьюера (read-only + комментарии); одобряет человек или <code>CODEOWNERS</code></td></tr>
+    <tr><td>Широкий токен, узкий промпт</td><td>Токен на job с <code>permissions:</code> ровно под задачу; OIDC</td></tr>
+    <tr><td>Тихий автомерж</td><td>Merge queue + обязательные проверки; автомерж только для класса низкого риска с тестами</td></tr>
+    <tr><td>Один общий токен бота</td><td>Отдельный бот-аккаунт на роль: triage, lint-fix, release</td></tr>
+    <tr><td>«Спроси перед merge» в промпте</td><td>Защита ветки в настройках репозитория</td></tr>
+    <tr><td>Агент правит свои хуки и CI</td><td><code>CODEOWNERS</code> на <code>.github/</code>, <code>.claude/</code>, <code>scripts/hooks/</code></td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Система только из агентов: архитектура</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Issue</span><span class="flow-desc">задача</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Planner</span><span class="flow-desc">план в issue</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Implementer</span><span class="flow-desc">своя ветка → PR</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Гейты CI</span><span class="flow-desc">тесты, линт, сканеры</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Reviewer</span><span class="flow-desc">read-only</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Merge queue</span><span class="flow-desc">проверки + политика</span></div>
+  </div>
+  <p class="flow-repeat">↻ красный гейт или спорный ревью → обратно Implementer; лимит итераций → эскалация человеку</p>
+  <p>Розовые шаги — агенты с разными identity и правами; зелёные — детерминированные гейты, которые не «убедишь». Человек пишет политику, выборочно аудитирует и получает эскалации.</p>
+</section>
+
+<section class="slide">
+  <h2>Правила системы из агентов</h2>
+  <ul>
+    <li><strong>Роли = разные identity и права.</strong> Ни одна роль не одобряет собственную работу</li>
+    <li><strong>Общаются через артефакты</strong>, а не через общий контекст: issue, PR, файл спеки, файл статуса. Состояние живёт в git — можно возобновить, проверить, откатить</li>
+    <li><strong>Между агентами — детерминированные гейты:</strong> LLM не единственный судья над LLM</li>
+    <li><strong>Идемпотентность:</strong> повторный запуск не даёт дубликатов PR и комментариев (ищите существующий, прежде чем создавать)</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Предохранители, наблюдаемость и место человека</h2>
+  <ul>
+    <li><strong>Бюджеты:</strong> <code>--max-turns</code>, <code>timeout</code>, лимит итераций «исправь → проверь» (например, 3), потолок стоимости на job и на сутки</li>
+    <li><strong>Kill switch:</strong> флаг или переменная, отключающая всех агентов разом, — проверьте, что он реально работает</li>
+    <li><strong>Наблюдаемость:</strong> логи хуков, лог действий агента как артефакт, метрики: доля откатов, доля эскалаций, стоимость на PR</li>
+    <li><strong>Эскалация:</strong> агент, который не уверен или упёрся в лимит, должен позвать человека, а не гадать</li>
+    <li><strong>«Только агенты» ≠ «без ответственного»:</strong> человек владеет политикой и выборочным аудитом</li>
   </ul>
 </section>
 
