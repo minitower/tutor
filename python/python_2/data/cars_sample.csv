@@ -1,0 +1,21 @@
+Car_ID,Brand,Manufacture_Year,Body_Type,Fuel_Type,Transmission,Engine_CC,Horsepower,Mileage_km_per_l,Price_USD,Manufacturing_Country
+CAR_0001,Mercedes,2006,SUV,Petrol,Manual,4089,547,17,73407,USA
+CAR_0002,Nissan,2023,Coupe,Petrol,Automatic,4618,167,25,79370,USA
+CAR_0003,Nissan,2007,Hatchback,Diesel,Manual,1802,110,16,76549,China
+CAR_0004,Nissan,2013,Coupe,Petrol,Manual,1835,373,16,48722,USA
+CAR_0005,Hyundai,2009,Hatchback,Hybrid,Automatic,2332,145,28,83265,UK
+CAR_0006,Tesla,2012,Coupe,Diesel,Automatic,2124,321,19,63134,UK
+CAR_0007,Audi,2011,Hatchback,Petrol,Automatic,4527,342,29,74241,Japan
+CAR_0008,Tesla,2016,SUV,Diesel,Automatic,1729,309,20,54364,China
+CAR_0009,Audi,2017,Hatchback,Hybrid,Manual,1561,470,12,65750,Germany
+CAR_0010,Honda,2020,Sedan,Electric,Manual,4254,116,17,8511,South Korea
+CAR_0011,Ford,2025,Coupe,Petrol,Automatic,3426,339,17,22948,Japan
+CAR_0012,Tesla,2009,Coupe,Diesel,Manual,1215,421,14,35738,Germany
+CAR_0013,Tesla,2013,Pickup,Electric,Manual,4774,512,15,57947,China
+CAR_0014,Audi,2019,Sedan,Petrol,Manual,3057,215,15,20195,Japan
+CAR_0015,Audi,2013,Pickup,Electric,Manual,2637,308,27,100638,Germany
+CAR_0016,Toyota,2020,SUV,Hybrid,Automatic,3384,126,30,109313,China
+CAR_0017,BMW,2025,SUV,Petrol,Manual,1001,265,20,78610,China
+CAR_0018,Tesla,2014,Coupe,Diesel,Automatic,3900,389,27,58073,Germany
+CAR_0019,Nissan,2020,Sedan,Hybrid,Automatic,1603,165,17,56037,Japan
+CAR_0020,Tesla,2013,Coupe,Hybrid,Automatic,4568,573,14,117420,Japan

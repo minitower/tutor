@@ -1,0 +1,19 @@
+site_name: ЛР2 — Список научных конференций
+site_description: Отчёт по лабораторной работе 2 (Django, вариант 5)
+
+theme:
+  name: material
+  language: ru
+  palette:
+    primary: indigo
+  features:
+    - navigation.tabs
+    - content.code.copy
+
+nav:
+  - Главная: index.md
+  - ЛР2 — модель и интерфейсы: lab2.md
+
+markdown_extensions:
+  - admonition
+  - tables

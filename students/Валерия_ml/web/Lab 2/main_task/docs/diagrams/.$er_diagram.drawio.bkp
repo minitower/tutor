@@ -1,0 +1,53 @@
+<mxfile host="app.diagrams.net" modified="2026-09-22T00:00:00.000Z" agent="mkdocs-report" version="24.0.0" type="device">
+  <diagram name="ER" id="er-conferences">
+    <mxGraphModel dx="900" dy="640" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="topic" value="&lt;b&gt;Topic&lt;/b&gt;&lt;hr size=1&gt;id (PK)&lt;br&gt;name" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontFamily=Courier New;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conference" value="&lt;b&gt;Conference&lt;/b&gt;&lt;hr size=1&gt;id (PK)&lt;br&gt;title&lt;br&gt;venue_name&lt;br&gt;venue_description&lt;br&gt;start_date&lt;br&gt;end_date&lt;br&gt;description&lt;br&gt;participation_terms" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontFamily=Courier New;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="40" width="220" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conftopics" value="&lt;b&gt;Conference_Topics&lt;/b&gt;&lt;i&gt; (M2M, авто)&lt;/i&gt;&lt;hr size=1&gt;id (PK)&lt;br&gt;conference_id (FK)&lt;br&gt;topic_id (FK)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontFamily=Courier New;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="&lt;b&gt;User&lt;/b&gt;&lt;i&gt; (django.contrib.auth)&lt;/i&gt;&lt;hr size=1&gt;id (PK)&lt;br&gt;username&lt;br&gt;is_staff&lt;br&gt;..." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontFamily=Courier New;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="680" y="40" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="registration" value="&lt;b&gt;Registration&lt;/b&gt;&lt;hr size=1&gt;id (PK)&lt;br&gt;conference_id (FK)&lt;br&gt;user_id (FK)&lt;br&gt;talk_title&lt;br&gt;created_at&lt;br&gt;recommended_for_publication&lt;br&gt;&lt;i&gt;(nullable, только admin)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontFamily=Courier New;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="340" width="260" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="review" value="&lt;b&gt;Review&lt;/b&gt;&lt;hr size=1&gt;id (PK)&lt;br&gt;conference_id (FK)&lt;br&gt;author_id (FK)&lt;br&gt;rating (1..10)&lt;br&gt;text&lt;br&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontFamily=Courier New;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="680" y="340" width="220" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;" edge="1" parent="1" source="topic" target="conftopics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;" edge="1" parent="1" source="conference" target="conftopics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;" edge="1" parent="1" source="conference" target="registration">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;" edge="1" parent="1" source="conference" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;" edge="1" parent="1" source="user" target="registration">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;" edge="1" parent="1" source="user" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

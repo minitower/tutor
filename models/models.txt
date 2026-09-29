@@ -1,0 +1,6 @@
+Линейная регрессия
+Логистическая регрессия
+(опционально) KNN
+Деревья решений
+Random Forest
+Gradient Boosting (XGBoost / LightGBM)

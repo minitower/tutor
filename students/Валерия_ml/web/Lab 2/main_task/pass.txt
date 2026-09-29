@@ -1,0 +1,6 @@
+Username	Password	Role
+admin	admin12345	superuser/staff (Django admin)
+author1	author12345	regular user
+testuser2	TestPass12345	regular user
+user_test_2 H9nRv@eGeaNLnjc regular user
+user_test_3 biprv7@g8Xd@gK2 regular user

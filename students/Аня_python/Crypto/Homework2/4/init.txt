@@ -1,0 +1,2 @@
+This lab examines a method for cracking a cipher based on
+trying all possible key variants. The criterion for a correct variant is the presence of a "probable word" in the text.
