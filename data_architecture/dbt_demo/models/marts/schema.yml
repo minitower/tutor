@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: Текущая версия каждого клиента (SCD Type 2 через snapshot).
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: segment
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['retail', 'wholesale']
+
+  - name: fct_orders
+    description: Инкрементальная таблица фактов заказов.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: amount
+        tests: [not_null]
+
+  - name: gold_customer_orders
+    description: >
+      Бизнес-витрина revenue по региону и месяцу. Контракт (contract.enforced) закреплён
+      в SQL-файле модели: dbt откажется материализовать модель, если реальные типы колонок
+      не совпадут с объявленными ниже (см. раздел 11).
+    columns:
+      - name: region
+        description: Регион текущей версии клиента (dim_customers).
+        data_type: text
+        tests: [not_null]
+      - name: order_month
+        description: Первый день месяца, к которому относится order_ts.
+        data_type: date
+        tests: [not_null]
+      - name: revenue
+        description: Сумма amount по всем заказам региона за месяц.
+        data_type: numeric(12,2)
+      - name: orders_cnt
+        description: Количество заказов региона за месяц.
+        data_type: integer

@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: Заказы после лёгкой очистки — типы приведены, категория нормализована.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests: [not_null]
+      - name: amount
+        tests: [not_null]
+
+  - name: stg_customers
+    description: Клиенты после лёгкой очистки (переименование колонок источника).
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: segment
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['retail', 'wholesale']

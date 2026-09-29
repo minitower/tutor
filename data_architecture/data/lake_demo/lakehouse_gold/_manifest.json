@@ -1,0 +1,16 @@
+{
+  "versions": [
+    {
+      "version": 0,
+      "file": "version_0.parquet",
+      "timestamp": "2026-08-04T11:07:52",
+      "rows": 3
+    },
+    {
+      "version": 1,
+      "file": "version_1.parquet",
+      "timestamp": "2026-08-04T11:07:52",
+      "rows": 3
+    }
+  ]
+}

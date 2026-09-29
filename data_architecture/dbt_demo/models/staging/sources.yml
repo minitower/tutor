@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: public
+    description: >
+      "Сырые" таблицы, как будто они реплицируются из продовой БД магазина
+      (та же роль источника, что и source_orders/dim_customers в лекции про Airflow).
+    tables:
+      - name: raw_orders
+        description: Сырые заказы, как они приезжают из операционной БД.
+        loaded_at_field: updated_at
+        freshness:
+          warn_after: {count: 12, period: hour}
+          error_after: {count: 24, period: hour}
+        columns:
+          - name: order_id
+            tests: [unique, not_null]
+      - name: raw_customers
+        description: Сырые данные клиентов (мутируемое измерение).
+        loaded_at_field: updated_at
+        columns:
+          - name: customer_id
+            tests: [unique, not_null]
