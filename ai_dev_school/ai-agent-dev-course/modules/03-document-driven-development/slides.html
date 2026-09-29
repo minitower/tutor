@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 3 — Document-Driven Development</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 3</p>
+  <h1>Document-Driven Development</h1>
+  <h2>Спецификации как источник истины</h2>
+  <p class="course">Agentic Software Development: From Specs to Shipped Code</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Почему неоднозначность — главный налог на работу с агентом</li>
+    <li>Анатомия спецификации, по которой агент реально может работать</li>
+    <li>Цикл: спецификация → план → реализация → обновление спецификации</li>
+    <li>Документы для агента на уровне репозитория vs. спецификации фичи</li>
+    <li>Типичные ошибки (и как их избегать)</li>
+    <li>Лабораторная: пишем настоящую спецификацию, отдаём агенту, закрываем пробелы</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели модуля</h2>
+  <p>По итогам вы сможете:</p>
+  <ul>
+    <li>Использовать письменную спецификацию как <strong>контракт</strong>, по которому агент реализует задачу</li>
+    <li>Отличать спецификацию, которая слишком расплывчата, от той, что переспецифицирована</li>
+    <li>Пройти полный цикл DDD, включая шаг, который команды обычно пропускают</li>
+    <li>Поддерживать спецификацию как <strong>живой артефакт</strong>, а не разовую передачу</li>
+    <li>Распознавать, когда DDD — не тот инструмент для задачи</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Проблема, которую решает DDD</h2>
+  <p>Самый большой источник впустую потраченных ходов агента — <strong>неоднозначность</strong>.</p>
+  <ul>
+    <li>Агент угадывает намерение → строит не то</li>
+    <li>Вы тратите больше времени на исправления, чем потратили бы, один раз записав намерение</li>
+    <li>Разговор, в котором вы «объяснили», не оставляет постоянного следа</li>
+  </ul>
+  <blockquote>DDD переносит эту стоимость заранее — в <strong>документ</strong>, а не в <strong>разговор</strong> — и документ остаётся у вас.</blockquote>
+  <div class="svg-scene">
+    <svg viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .lbl{font:700 12px var(--font,sans-serif);fill:var(--fg-dim);text-anchor:middle;}
+        .dline{stroke:var(--accent);stroke-width:2.5;}
+      </style>
+
+      <rect x="40" y="35" width="100" height="120" rx="8" fill="var(--bg-2)" stroke="var(--accent)" stroke-width="3"/>
+      <path d="M118 35 v22 h22 z" fill="var(--card)" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+      <line class="dline" x1="58" y1="76" x2="122" y2="76"/>
+      <line class="dline" x1="58" y1="92" x2="122" y2="92"/>
+      <line class="dline" x1="58" y1="108" x2="100" y2="108"/>
+      <text class="lbl" x="90" y="172">Спецификация</text>
+
+      <line x1="156" y1="95" x2="206" y2="95" stroke="var(--fg-dim)" stroke-width="3"/>
+      <polygon points="206,88 220,95 206,102" fill="var(--fg-dim)"/>
+      <text class="lbl" x="188" y="80" style="font-size:10px;">читает</text>
+
+      <rect x="256" y="70" width="56" height="46" rx="11" fill="var(--bg-2)" stroke="var(--accent-3)" stroke-width="3"/>
+      <line x1="284" y1="70" x2="284" y2="58" stroke="var(--accent-3)" stroke-width="3"/>
+      <circle cx="284" cy="54" r="4" fill="var(--accent-3)"/>
+      <circle cx="272" cy="93" r="4" fill="var(--accent-3)"/>
+      <circle cx="296" cy="93" r="4" fill="var(--accent-3)"/>
+      <text class="lbl" x="284" y="152">Агент</text>
+
+      <line x1="346" y1="95" x2="396" y2="95" stroke="var(--fg-dim)" stroke-width="3"/>
+      <polygon points="396,88 410,95 396,102" fill="var(--fg-dim)"/>
+
+      <circle cx="470" cy="95" r="38" fill="var(--bg-2)" stroke="var(--accent-2)" stroke-width="3"/>
+      <path d="M453 96 l12 12 l24 -28" fill="none" stroke="var(--accent-2)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text class="lbl" x="470" y="152">Проект понят</text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Что такое Document-Driven Development</h2>
+  <blockquote>Письменная спецификация — это <strong>основной интерфейс</strong> между человеком и агентом для работы над задачей.</blockquote>
+  <p>Агент:</p>
+  <ol>
+    <li>Читает спецификацию</li>
+    <li>Планирует по ней</li>
+    <li>Реализует по ней</li>
+    <li>Помогает <strong>обновить её</strong>, когда реальность расходится с планом</li>
+  </ol>
+  <p><em>Последний пункт — то, что команды пропускают. Он же делает это «document-driven», а не «однажды написал документ».</em></p>
+  <div class="svg-scene small" style="margin:.4rem 0 0;">
+    <svg viewBox="0 0 240 240" style="max-width:210px;" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .ddd-path{fill:none;stroke:var(--border);stroke-width:2;stroke-dasharray:4 6;}
+        .ddd-node{fill:var(--bg-2);stroke-width:3;}
+        .ddd-read{stroke:var(--accent);} .ddd-plan{stroke:var(--accent-3);}
+        .ddd-impl{stroke:var(--accent-2);} .ddd-upd{stroke:var(--accent);}
+        .ddd-nl{font:700 10px var(--font,sans-serif);fill:var(--fg);text-anchor:middle;}
+        .ddd-dot{fill:var(--accent-2);}
+      </style>
+      <rect class="ddd-path" x="40" y="40" width="160" height="160" rx="20"/>
+      <circle class="ddd-node ddd-read" cx="120" cy="40" r="26"/>
+      <text class="ddd-nl" x="120" y="44">Читает</text>
+      <circle class="ddd-node ddd-plan" cx="200" cy="120" r="26"/>
+      <text class="ddd-nl" x="200" y="124">Планирует</text>
+      <circle class="ddd-node ddd-impl" cx="120" cy="200" r="26"/>
+      <text class="ddd-nl" x="120" y="204">Реализует</text>
+      <circle class="ddd-node ddd-upd" cx="40" cy="120" r="26"/>
+      <text class="ddd-nl" x="40" y="118">Обнов-</text>
+      <text class="ddd-nl" x="40" y="129">ляет</text>
+      <circle class="ddd-dot" r="6">
+        <animateMotion dur="5s" repeatCount="indefinite"
+          path="M120,40 L200,120 L120,200 L40,120 Z"/>
+      </circle>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Анатомия спецификации — обзор</h2>
+  <ol>
+    <li><strong>Цель (Goal)</strong> — один абзац, простым языком</li>
+    <li><strong>Не-цели (Non-goals)</strong> — явно вне рамок</li>
+    <li><strong>Интерфейсы / контракты</strong> — то, что агент не должен придумывать сам</li>
+    <li><strong>Граничные случаи</strong> — те, о которых вы уже знаете</li>
+    <li><strong>Критерии приёмки</strong> — проверяемые, в идеале буквально команды/тесты</li>
+    <li><strong>Открытые вопросы</strong> — оставлены агенту, чтобы он предложил ответ</li>
+  </ol>
+  <p><em>Сквозной пример на следующих слайдах: экспорт отчётов в CSV.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Цель + Не-цели</h2>
+  <pre><code>## Goal
+Let a user export the currently filtered report rows to a CSV file,
+matching the date range they've already selected on the dashboard.
+
+## Non-goals
+- No new file formats (CSV only, not XLSX/PDF)
+- No server-side scheduled/emailed exports — synchronous,
+  on-click download only</code></pre>
+  <p>Не-цели спасают от незаметного расползания объёма задачи — они так же значимы, как и сама цель.</p>
+</section>
+
+<section class="slide">
+  <h2>Интерфейсы / контракты</h2>
+  <pre><code>## Interface
+- A button labeled "Export CSV" next to the existing date-range picker
+- Clicking it downloads a file named `report_&lt;start&gt;_&lt;end&gt;.csv`
+- Columns match the currently visible table columns, in the same order</code></pre>
+  <p>Если это важно, а вы не записали — агент придумает сам, и его выдумка станет фактическим контрактом, который следующему читателю придётся восстанавливать реверс-инжинирингом.</p>
+</section>
+
+<section class="slide">
+  <h2>Граничные случаи</h2>
+  <pre><code>## Edge cases
+- No rows in the selected range → header-only CSV, not an error
+- Date range spans a DST transition → use UTC dates in filename and
+  date columns, to avoid off-by-one-day bugs
+- User has an active column filter (not just date range) → export
+  respects it too, not just the date range</code></pre>
+  <p>Вы уже знаете эти случаи. Записать их — не стоит времени; <em>не</em> записать — просто переносит стоимость со «спецификации» на «отладку».</p>
+</section>
+
+<section class="slide">
+  <h2>Критерии приёмки + Открытые вопросы</h2>
+  <pre><code>## Acceptance criteria
+- Exporting a known 3-row range produces exactly those 3 rows + header
+- Exporting an empty range produces a header-only CSV, not a 500
+- Filename matches `report_&lt;start&gt;_&lt;end&gt;.csv` using UTC dates
+
+## Open questions
+- Should the export button be disabled (vs. hidden) when there's no
+  data? Leaving this to the agent to propose in the plan step.</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Папка спецификаций</h2>
+  <ul>
+    <li>Одна папка в репозитории — например <code>docs/specs/</code> — держит по одному файлу на фичу</li>
+    <li>Имя файла = имя фичи/тикета: <code>export-csv.md</code>, <code>cursor-pagination.md</code></li>
+    <li>Спецификация создаётся <strong>до</strong> начала работы, обновляется <strong>во время</strong> работы, и остаётся там, пока фича не выпущена</li>
+    <li>Ссылка на файл — это то, что вы даёте агенту вместо пересказа задачи словами в чате</li>
+  </ul>
+  <pre><code><span style="color:var(--accent)">docs/</span>
+└── <span style="color:var(--accent)">specs/</span>
+    ├── export-csv.md         <span style="color:var(--fg-dim)">← в работе</span>
+    ├── cursor-pagination.md  <span style="color:var(--accent-2)">← выпущено, можно архивировать</span>
+    └── rate-limiting.md      <span style="color:var(--fg-dim)">← ещё не начата</span></code></pre>
+</section>
+
+<section class="slide">
+  <h2>Виды спецификаций (1 из 2)</h2>
+  <p>«Спецификация» — не один жанр документа. Формат под задачу:</p>
+  <div class="trio">
+    <div class="card"><h4>Feature spec</h4><p>То, что мы разбирали: Goal, Non-goals, Interface, Edge cases, Acceptance criteria. Один кусок пользовательской функциональности.</p></div>
+    <div class="card"><h4>Task spec</h4><p>Меньше и короче — под один рабочий сеанс агента. Ближе к одноразовому плану (Модуль 5), чем к постоянному документу.</p></div>
+    <div class="card"><h4>Security spec</h4><p>Модель угроз: границы доверия, что нельзя раскрывать, какие входные данные считать враждебными.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Виды спецификаций (2 из 2)</h2>
+  <div class="trio">
+    <div class="card"><h4>Code-review spec</h4><p>Чек-лист критериев, по которым ревьюер — человек или агент — проверяет диф, прежде чем принять его.</p></div>
+    <div class="card"><h4>Design spec</h4><p>Токены и визуальные правила вместо расплывчатых прилагательных — подробно в Модуле 4.</p></div>
+    <div class="card"><h4>Spec-writer</h4><p>Отдельный шаг (или агент), который превращает расплывчатый запрос из Модуля 2 в структурированную спецификацию, прежде чем строить.</p></div>
+  </div>
+  <p><em>И так далее — под свою команду список стоит держать коротким, а не плодить жанры ради жанров.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Документы уровня репозитория vs. спецификации фичи</h2>
+  <p>Два разных документа — не путайте их:</p>
+  <table>
+    <tr><th></th><th>Репозиторий (CLAUDE.md, AGENTS.md)</th><th>Спецификация фичи</th></tr>
+    <tr><td>Область</td><td>Весь репозиторий, постоянный контекст</td><td>Один кусок работы</td></tr>
+    <tr><td>Содержимое</td><td>Конвенции, команды тестов, архитектурные ограничения</td><td>Цель, не-цели, интерфейсы, граничные случаи, критерии приёмки</td></tr>
+    <tr><td>Жизненный цикл</td><td>Читается каждую сессию, редко меняется</td><td>Написана под задачу, архивируется/удаляется после выпуска</td></tr>
+  </table>
+  <p><em>DDD в этом курсе — про второй тип.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Почему последний шаг — вся суть</h2>
+  <ul>
+    <li>Спецификация, незаметно расходящаяся с кодом, <strong>хуже, чем отсутствие спецификации</strong> — она активно вводит в заблуждение следующего читателя</li>
+    <li>«Обновить спецификацию» должно входить в определение «готово», как и тесты</li>
+    <li>Ценность DDD — в том, что план проверяется по спецификации <em>до</em> начала реализации, а не в самом факте существования документа в репозитории</li>
+  </ul>
+  <blockquote>DDD ≠ «я один раз написал документ». DDD = документ остаётся правдивым.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Хорошие документы репозитория делают спецификации короче</h2>
+  <p>Пример правила в <code>CLAUDE.md</code>:</p>
+  <pre><code>Before any UI/styling work, read `design/tokens.css` and
+`design/system.md`. Do not introduce new colors, fonts, or spacing
+values outside the tokens file.</code></pre>
+  <p>Поскольку это правило уже существует на уровне репозитория, спецификации на экспорт CSV вообще не нужно упоминать design-токены — одним пунктом меньше писать, и одним пунктом меньше того, что может устареть.</p>
+  <p><code>CLAUDE.md</code> — не файл, который пишут один раз и забывают:</p>
+  <ul>
+    <li>Нашли во время задачи устойчивую конвенцию, которой там ещё нет? Добавьте её строкой в <code>CLAUDE.md</code> <strong>в том же PR</strong> — не «как-нибудь потом»</li>
+    <li>Можно прямо попросить агента в конце задачи: «если нашёл что-то, что стоит запомнить на будущее — предложи правку в CLAUDE.md»</li>
+    <li>Польза копится: каждая следующая спецификация короче, а каждая новая сессия агента стартует уже «в курсе» конвенций команды</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Типичные ошибки (1 из 2)</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Устаревшие документы</h4>
+      <p>Спецификация говорит одно, код делает другое, никто не замечает, пока это не вызывает баг.</p>
+      <div style="margin-top:.7rem; padding:.5rem .8rem; border:1px solid rgba(55,230,176,.4); border-radius:8px; background:rgba(55,230,176,.06);">
+        <strong style="color:var(--accent-2); font-size:.85rem;">Смягчение</strong>
+        <p style="margin:.2rem 0 0;">«Обновить спецификацию» — часть «готово», как и тесты.</p>
+      </div>
+    </div>
+    <div class="card before">
+      <h4>Переспецификация</h4>
+      <p>Диктовать детали реализации, которые не важны, — дорого писать и дорого поддерживать в актуальном состоянии.</p>
+      <div style="margin-top:.7rem; padding:.5rem .8rem; border:1px solid rgba(55,230,176,.4); border-radius:8px; background:rgba(55,230,176,.06);">
+        <strong style="color:var(--accent-2); font-size:.85rem;">Смягчение</strong>
+        <p style="margin:.2rem 0 0;">Специфицировать контракты и поведение, а не внутреннее устройство.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Типичные ошибки (2 из 2)</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Недоспецификация известных граничных случаев</h4>
+      <p>Если вы о них знаете и не записали — вы не сэкономили время, а перенесли стоимость на отладку.</p>
+      <div style="margin-top:.7rem; padding:.5rem .8rem; border:1px solid rgba(55,230,176,.4); border-radius:8px; background:rgba(55,230,176,.06);">
+        <strong style="color:var(--accent-2); font-size:.85rem;">Смягчение</strong>
+        <p style="margin:.2rem 0 0;">Пройдитесь по разделу Edge cases явно, а не надейтесь, что «само всплывёт» в реализации.</p>
+      </div>
+    </div>
+    <div class="card before">
+      <h4>Спецификация как одностороннее вручение</h4>
+      <p>Ценность DDD — в том, что план агента проверяется по спецификации <em>до</em> начала реализации, а не в том, что вы отдали документ и ушли.</p>
+      <div style="margin-top:.7rem; padding:.5rem .8rem; border:1px solid rgba(55,230,176,.4); border-radius:8px; background:rgba(55,230,176,.06);">
+        <strong style="color:var(--accent-2); font-size:.85rem;">Смягчение</strong>
+        <p style="margin:.2rem 0 0;">Сначала попросите агента предложить план и сверьте его со спецификацией, прежде чем разрешать реализацию.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Когда DDD — не тот инструмент</h2>
+  <table>
+    <tr><th>Методология</th><th>Лучше всего для</th><th>Слабо подходит для</th><th>Артефакт</th></tr>
+    <tr><td><strong>DDD (spec-first)</strong></td><td>Фичи с реальной неоднозначностью</td><td>Мелкие правки (overhead)</td><td>Постоянная спецификация</td></tr>
+    <tr><td>Plan-first</td><td>Рефакторинги, рискованные изменения</td><td>Быстрое исследование</td><td>Одноразовый план/ADR</td></tr>
+    <tr><td>TDD-с-агентом</td><td>Багфиксы, чёткая логика</td><td>Исследовательская UI-работа</td><td>Набор тестов</td></tr>
+    <tr><td>Разговорный подход</td><td>Прототипы, разовые скрипты</td><td>Всё, что требует бумажного следа</td><td>Ничего</td></tr>
+  </table>
+  <p><em>Пятистрочный багфикс не нуждается в спецификации. Фича с реальной неоднозначностью — нуждается.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Инструмент: spec-kit</h2>
+  <div class="svg-scene small" style="margin:.2rem 0 .6rem;">
+    <svg viewBox="0 0 320 130" style="max-width:320px;" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .sk-label{font:700 24px var(--font);fill:var(--fg);}
+        .sk-url{font:500 13px var(--mono);fill:var(--fg-dim);}
+      </style>
+      <text x="46" y="72" text-anchor="middle" font-size="46">🌱</text>
+      <text x="96" y="64" class="sk-label">spec-kit</text>
+      <text x="96" y="86" class="sk-url">github.com/github/spec-kit</text>
+    </svg>
+  </div>
+  <p>Открытый инструмент от GitHub: слэш-команды <code>/specify</code>, <code>/plan</code>, <code>/tasks</code> прямо в агентном CLI реализуют тот же цикл, что мы прошли на этом занятии.</p>
+  <pre><code>$ specify init my-project &amp;&amp; cd my-project
+
+&gt; /specify Дать пользователю экспортировать отфильтрованные
+  строки отчёта в CSV, соответствующий выбранному диапазону дат
+&gt; /plan Переиспользовать существующий компонент таблицы,
+  без новых зависимостей
+&gt; /tasks</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная: пишем спецификацию, отдаём агенту</h2>
+  <ol>
+    <li>Выберите реальную небольшую-среднюю фичу (учебный репозиторий или свой)</li>
+    <li>Напишите спецификацию <strong>на одну страницу</strong> по описанной анатомии — засеките время</li>
+    <li>Дайте агенту <strong>только спецификацию</strong> как задачу — без устного контекста</li>
+    <li>Пусть агент <strong>сначала предложит план</strong>; проверьте его по спецификации, прежде чем разрешать реализацию</li>
+    <li>После реализации проверьте поведение по критериям приёмки</li>
+    <li>Обновите спецификацию, чтобы закрыть каждый найденный пробел</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная: на что обратить внимание</h2>
+  <ul>
+    <li>Каждое место, где агенту пришлось <strong>угадывать</strong> → спецификация молчала</li>
+    <li>Каждое место, где план вас <strong>удивил</strong> → это стоит поймать до того, как появится код</li>
+    <li>Каждый критерий приёмки, который <strong>не проходит с первого раза</strong> — код неверен, или сам критерий сформулирован нечётко?</li>
+    <li>Честно фиксируйте потраченное время — по этому вы позже оцените, окупился ли DDD</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Результат (Deliverable)</h2>
+  <ul>
+    <li>Документ спецификации</li>
+    <li>План агента (если использовался режим планирования)</li>
+    <li>Получившийся дифф</li>
+    <li>Краткий список: <strong>«места, где спецификация была неверной или неполной, и что я изменил»</strong></li>
+  </ul>
+  <p><em>Именно этот последний список — самый ценный артефакт: он даёт прямое доказательство того, чего стоит спецификация на реальной задаче.</em></p>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 04</p>
+  <h2>Далее: Deterministic Design Systems</h2>
+  <p>Спецификация — это контракт, а не список пожеланий. Цикл считается DDD, только если спецификация обновляется. Документы уровня репозитория и спецификации фич — разные инструменты, используемые вместе.</p>
+  <p><em>Та же идея «запиши, чтобы агент не угадывал», применённая к визуальной консистентности: токены и design-документы вместо расплывчатых прилагательных.</em></p>
+</section>
+
+</main>
+
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

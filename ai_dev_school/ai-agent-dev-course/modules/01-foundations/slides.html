@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 1 — Основы</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 1</p>
+  <h1>Основы</h1>
+  <h2>Как на самом деле работают агентные циклы</h2>
+  <p class="course">Agentic Software Development: From Specs to Shipped Code</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Что вообще значит «агентный» (в отличие от автодополнения)</li>
+    <li>Базовый цикл: план → действие → наблюдение → повтор</li>
+    <li>Разбор реальной трассировки, вызов за вызовом</li>
+    <li>Контекстные окна, память и сжатие (compaction)</li>
+    <li>Права доступа и песочницы</li>
+    <li>Лабораторная: трассируем и аннотируем работу агента</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели модуля</h2>
+  <p>К концу модуля вы сможете:</p>
+  <ol>
+    <li>Объяснить цикл агента: план → действие через инструменты → наблюдение → повтор</li>
+    <li>Отличить помощь в стиле автодополнения от агентных инструментов</li>
+    <li>Объяснить, что такое контекстное окно и почему длинные сессии <strong>сжимаются</strong> (compaction)</li>
+    <li>Объяснить, почему важные решения должны жить в файлах, а не в истории чата</li>
+  </ol>
+  <div class="icon-compare">
+    <div class="side">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 20h70a8 8 0 0 1 8 8v34a8 8 0 0 1-8 8H45l-18 16v-16H15a8 8 0 0 1-8-8V28a8 8 0 0 1 8-8z"
+              fill="none" stroke="var(--accent)" stroke-width="4" stroke-linejoin="round"/>
+        <circle cx="32" cy="50" r="4" fill="var(--accent)"/>
+        <circle cx="50" cy="50" r="4" fill="var(--accent)"/>
+        <circle cx="68" cy="50" r="4" fill="var(--accent)"/>
+      </svg>
+      <span class="ic-label">Обычный чат</span>
+      <span class="ic-desc">Отвечает текстом на сообщение — и всё</span>
+    </div>
+    <div class="vs">vs</div>
+    <div class="side">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="30" width="60" height="45" rx="10" fill="none" stroke="var(--accent-3)" stroke-width="4"/>
+        <line x1="50" y1="30" x2="50" y2="16" stroke="var(--accent-3)" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="50" cy="12" r="5" fill="var(--accent-3)"/>
+        <circle cx="36" cy="52" r="5" fill="var(--accent-3)"/>
+        <circle cx="64" cy="52" r="5" fill="var(--accent-3)"/>
+        <line x1="32" y1="66" x2="68" y2="66" stroke="var(--accent-3)" stroke-width="4" stroke-linecap="round"/>
+        <g transform="translate(70,64) rotate(45)">
+          <rect x="-3" y="-16" width="6" height="20" rx="2" fill="var(--accent-2)"/>
+          <circle cx="0" cy="-18" r="6" fill="var(--accent-2)"/>
+        </g>
+      </svg>
+      <span class="ic-label">Агент + инструменты</span>
+      <span class="ic-desc">Читает файлы, запускает команды, проверяет результат</span>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Что значит «агентный»?</h2>
+  <ul>
+    <li>Это не «автодополнение, только умнее»</li>
+    <li>Это программа, которая умеет:
+      <ul>
+        <li><strong>действовать</strong> в реальном мире (читать/писать файлы, запускать команды)</li>
+        <li><strong>наблюдать</strong>, что произошло на самом деле</li>
+        <li><strong>решать</strong>, что делать дальше, опираясь на это наблюдение</li>
+      </ul>
+    </li>
+    <li>Агентом инструмент делает именно цикл, а не сама модель</li>
+  </ul>
+  <blockquote>Чат-модель отвечает на вопросы. Агент делает работу и проверяет результат этой работы.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Обычный чат vs. агентный инструмент</h2>
+  <table>
+    <tr><th></th><th>Обычный чат (ChatGPT-style)</th><th>Агентный (Claude Code)</th></tr>
+    <tr><td>Единица результата</td><td>Текстовый ответ на сообщение</td><td>Последовательность вызовов инструментов</td></tr>
+    <tr><td>Контур обратной связи</td><td>Проверяете только вы</td><td>Агент сам может запустить тесты</td></tr>
+    <tr><td>Масштаб</td><td>То, что вы вставили в переписку</td><td>Весь репозиторий, много файлов</td></tr>
+    <tr><td>Память сессии</td><td>Только история этого чата</td><td>Контекстное окно + файлы (CLAUDE.md)</td></tr>
+    <tr><td>Останавливается, когда</td><td>Ответ сгенерирован полностью</td><td>Условие задачи выполнено или тупик</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Базовый цикл</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">ПЛАН</span><span class="flow-desc">что делать дальше, учитывая цель?</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">ДЕЙСТВИЕ</span><span class="flow-desc">вызов инструмента</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">НАБЛЮДЕНИЕ</span><span class="flow-desc">результат возвращается в контекст</span></div>
+  </div>
+  <p class="flow-repeat">↻ повтор, пока задача не решена (или тупик)</p>
+  <div class="svg-scene small">
+    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .loop-path{fill:none;stroke:var(--border);stroke-width:2;stroke-dasharray:4 6;}
+        .node{fill:var(--bg-2);stroke-width:3;}
+        .node-plan{stroke:var(--accent);} .node-act{stroke:var(--accent-3);} .node-obs{stroke:var(--accent-2);}
+        .nl{font:700 10px var(--font,sans-serif);fill:var(--fg);text-anchor:middle;}
+        .ns{font:8px var(--mono,monospace);fill:var(--fg-dim);text-anchor:middle;}
+        .dot{fill:var(--accent-2);}
+      </style>
+      <circle class="loop-path" cx="120" cy="120" r="80"/>
+      <circle class="node node-plan" cx="120" cy="40" r="28"/>
+      <text class="nl" x="120" y="37">План</text><text class="ns" x="120" y="49">Reason</text>
+      <circle class="node node-act" cx="189" cy="160" r="28"/>
+      <text class="nl" x="189" y="157">Действие</text><text class="ns" x="189" y="169">Act</text>
+      <circle class="node node-obs" cx="51" cy="160" r="28"/>
+      <text class="nl" x="51" y="157">Наблюдение</text><text class="ns" x="51" y="169">Observe</text>
+      <circle class="dot" r="6">
+        <animateMotion dur="4s" repeatCount="indefinite"
+          path="M120,40 A80,80 0 1,1 120,200 A80,80 0 1,1 120,40"/>
+      </circle>
+    </svg>
+  </div>
+  <p><em>Это паттерн <strong>ReAct</strong> (Reason + Act): модель рассуждает о следующем шаге, действует, наблюдает результат — и следующее рассуждение уже опирается на это наблюдение.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Шаг 1 — План</h2>
+  <ul>
+    <li>Опираясь на цель и всё, что есть в контексте, модель выбирает <strong>одно следующее действие</strong></li>
+    <li>Это не фиксированный сценарий — план пересматривается <strong>после каждого</strong> наблюдения</li>
+    <li>Планирование дешёво пересчитать заново — в этом и весь смысл цикла</li>
+  </ul>
+  <blockquote>«Нужно добавить флаг <code>--verbose</code>. Я ещё не знаю, где в этом проекте разбираются флаги CLI — сначала найду существующие определения флагов.»</blockquote>
+  <p>Это рассуждение соответствует конкретному <strong>состоянию</strong>, которое агент держит между шагами:</p>
+  <pre><code>{
+  "goal": "Добавить флаг --verbose в CLI",
+  "completed_steps": [],
+  "next_action": {
+    "reasoning": "Не знаю, где определяются флаги — сначала найду существующие",
+    "tool": "grep",
+    "input": { "pattern": "add_argument", "path": "src/cli.py" }
+  },
+  "open_questions": []
+}</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Шаг 2 — Действие через инструменты</h2>
+  <ul>
+    <li>План превращается в <strong>структурированный вызов инструмента</strong>, а не в свободный текст</li>
+    <li>Примеры: <code>read_file</code>, <code>grep</code>, <code>run_tests</code>, <code>edit_file</code>, <code>bash</code></li>
+  </ul>
+  <pre><code>{
+  "tool": "grep",
+  "input": { "pattern": "add_argument", "path": "src/cli.py" }
+}</code></pre>
+  <p>Вызов инструмента — это интерфейс между «размышлением» и «действием»</p>
+</section>
+
+<section class="slide">
+  <h2>Шаг 3 — Наблюдение</h2>
+  <ul>
+    <li>Результат инструмента (stdout, содержимое файла, диф, ошибка) добавляется обратно в контекст модели</li>
+    <li>Агент не «предполагает» успех — он читает то, что реально вернулось</li>
+  </ul>
+  <pre><code>$ grep add_argument src/cli.py
+src/cli.py:14:    parser.add_argument("--output", ...)
+src/cli.py:18:    parser.add_argument("--dry-run", ...)</code></pre>
+  <p>Именно этот шаг вообще делает возможной верификацию</p>
+</section>
+
+<section class="slide">
+  <h2>Шаг 4 — Повтор и остановка</h2>
+  <p>Цикл продолжается, пока не наступит одно из:</p>
+  <ul>
+    <li>выполнено условие завершения задачи (тесты прошли, файл изменён как требовалось)</li>
+    <li>агент зашёл в тупик и спрашивает человека</li>
+    <li>действие заблокировано запросом на разрешение</li>
+    <li>достигнут жёсткий лимит (число шагов, время, контекст)</li>
+  </ul>
+  <p><em>Правильно остановиться сложнее, чем кажется — подробнее в Модуле 9.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Полный цикл с аннотациями</h2>
+  <p>Задача: <em>«Добавить флаг <code>--verbose</code> в CLI»</em></p>
+  <ol class="trace-log">
+    <li><span class="tag plan">План</span> найти, где определяются флаги</li>
+    <li><span class="tag action">Действие</span> <code>grep "add_argument" src/cli.py</code></li>
+    <li><span class="tag obs">Наблюдение</span> найдено 2 существующих флага, один и тот же паттерн</li>
+    <li><span class="tag plan">План</span> добавить новый флаг по этому паттерну</li>
+    <li><span class="tag action">Действие</span> <code>edit_file src/cli.py</code> (+1 строка)</li>
+    <li><span class="tag obs">Наблюдение</span> диф применился без конфликтов</li>
+    <li><span class="tag plan">План</span> проверить, что ничего не сломалось</li>
+    <li><span class="tag action">Действие</span> <code>run_tests</code></li>
+    <li><span class="tag obs">Наблюдение</span> 42 пройдено, 0 упало</li>
+    <li><span class="tag plan">План</span> готово — подвести итог для пользователя</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Разбор трассировки — почему случился каждый вызов</h2>
+  <table>
+    <tr><th>№</th><th>Вызов инструмента</th><th>Почему</th></tr>
+    <tr><td>1</td><td><code>grep add_argument</code></td><td>Узнать существующее соглашение, прежде чем добавлять к нему своё</td></tr>
+    <tr><td>2</td><td><code>read_file src/cli.py</code></td><td>Уточнить точное место вставки и импорты</td></tr>
+    <tr><td>3</td><td><code>edit_file</code></td><td>Внести минимальное изменение</td></tr>
+    <tr><td>4</td><td><code>run_tests</code></td><td>Убедиться, что изменение ничего не сломало</td></tr>
+    <tr><td>5</td><td><code>bash: python cli.py --verbose</code></td><td>Проверить, что флаг реально работает end-to-end</td></tr>
+  </table>
+  <p><em>Именно такую таблицу вы будете строить в результате лабораторной.</em></p>
+  <h3>В проде это смотрят как трассировку (tracing), а не как чат</h3>
+  <p>Каждый вызов инструмента — отдельный <strong>span</strong> (OpenTelemetry-совместимый формат): id, длительность, вход/выход и срез состояния сразу после шага.</p>
+  <pre><code>{
+  "trace_id": "a1b2c3", "span_id": "s1",
+  "name": "tool_call: grep",
+  "duration_ms": 42,
+  "input": { "pattern": "add_argument", "path": "src/cli.py" },
+  "output": { "matches": 2 },
+  "state_after": { "completed_steps": 1, "open_questions": 0 }
+}</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Контекстные окна — что это такое</h2>
+  <ul>
+    <li><strong>Контекстное окно</strong> — это всё, что модель «видит» на данном шаге:
+      <ul>
+        <li>системный промпт / инструкции</li>
+        <li>история диалога</li>
+        <li>содержимое прочитанных файлов</li>
+        <li>результаты вызовов инструментов</li>
+      </ul>
+    </li>
+  </ul>
+  <blockquote>Оно конечно. Представьте его как <strong>рабочий стол</strong>, а не архив — работать можно только с тем, что лежит на столе прямо сейчас.</blockquote>
+  <div class="svg-scene">
+    <svg viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .lbl{font:700 12px var(--font,sans-serif);fill:var(--fg-dim);text-anchor:middle;}
+        .bubble{fill:var(--card);stroke:var(--border);stroke-width:1.5;opacity:0;}
+        .bt{font:11px var(--font,sans-serif);fill:var(--fg);text-anchor:middle;}
+        .slot{fill:var(--bg-2);stroke:var(--border);stroke-width:1.5;}
+        .fill1{fill:var(--accent);opacity:0;} .fill2{fill:var(--accent-3);opacity:0;}
+        .fill3{fill:var(--accent-2);opacity:0;} .fill4{fill:var(--fg-dim);opacity:0;}
+        .stxt{font:700 10px var(--mono,monospace);fill:var(--bg);text-anchor:middle;}
+      </style>
+
+      <circle cx="60" cy="60" r="30" fill="var(--bg-2)" stroke="var(--accent)" stroke-width="3"/>
+      <circle cx="60" cy="50" r="10" fill="var(--accent)"/>
+      <path d="M40 82 a20 17 0 0 1 40 0" fill="var(--accent)"/>
+      <text class="lbl" x="60" y="112">Пользователь</text>
+
+      <rect x="466" y="30" width="56" height="46" rx="11" fill="var(--bg-2)" stroke="var(--accent-3)" stroke-width="3"/>
+      <line x1="494" y1="30" x2="494" y2="18" stroke="var(--accent-3)" stroke-width="3"/>
+      <circle cx="494" cy="14" r="4" fill="var(--accent-3)"/>
+      <circle cx="482" cy="53" r="4" fill="var(--accent-3)"/>
+      <circle cx="506" cy="53" r="4" fill="var(--accent-3)"/>
+      <text class="lbl" x="494" y="112">Агент</text>
+      <text x="494" y="98" text-anchor="middle" font-size="16">🔧📄💻</text>
+
+      <rect class="bubble" x="30" y="10" width="140" height="30" rx="10">
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.7;1" dur="6s" repeatCount="indefinite"/>
+      </rect>
+      <text class="bt" x="100" y="30" opacity="0">«Добавь флаг --verbose»
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.7;1" dur="6s" repeatCount="indefinite"/>
+      </text>
+
+      <rect class="bubble" x="360" y="10" width="150" height="30" rx="10">
+        <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.15;0.22;0.85;1" dur="6s" repeatCount="indefinite"/>
+      </rect>
+      <text class="bt" x="435" y="30" font-size="10">grep → 2 совпадения
+        <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.15;0.22;0.85;1" dur="6s" repeatCount="indefinite"/>
+      </text>
+
+      <text class="lbl" x="280" y="150">контекстное окно (то, что «на столе» прямо сейчас)</text>
+      <rect x="80" y="160" width="400" height="40" rx="8" class="slot"/>
+      <rect class="fill1" x="86" y="166" width="90" height="28" rx="4"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.07;0.09;0.92;1" dur="6s" repeatCount="indefinite"/></rect>
+      <text class="stxt" x="131" y="184">system</text>
+      <rect class="fill2" x="182" y="166" width="90" height="28" rx="4"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.23;0.25;0.92;1" dur="6s" repeatCount="indefinite"/></rect>
+      <text class="stxt" x="227" y="184">history</text>
+      <rect class="fill3" x="278" y="166" width="90" height="28" rx="4"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.43;0.45;0.92;1" dur="6s" repeatCount="indefinite"/></rect>
+      <text class="stxt" x="323" y="184">cli.py</text>
+      <rect class="fill4" x="374" y="166" width="90" height="28" rx="4"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.63;0.65;0.92;1" dur="6s" repeatCount="indefinite"/></rect>
+      <text class="stxt" x="419" y="184">tool result</text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Ограничения контекста на практике</h2>
+  <ul>
+    <li>Чтение огромного файла или многословный вывод команды может занять значительную долю доступного пространства за один шаг</li>
+    <li>Эффекты по мере заполнения сессии:
+      <ul>
+        <li>более ранние инструкции «вытесняются» из фокуса внимания</li>
+        <li>агент может повторно прочитать файл, который уже видел</li>
+        <li>качество может проседать ближе к пределу</li>
+      </ul>
+    </li>
+    <li>Хорошие агенты читают <strong>узко</strong>: конкретные строки, отфильтрованный grep</li>
+  </ul>
+  <div class="trio">
+    <div class="card"><h4>grep / ripgrep</h4><p>Точный текстовый поиск по репозиторию — быстро и дёшево по контексту, но находит только то, что совпадает буквально</p></div>
+    <div class="card"><h4>RAG по кодовой базе</h4><p>Код заранее превращён в эмбеддинги и лежит в векторной базе; агент ищет по смыслу запроса, а не по точной строке</p></div>
+    <div class="card"><h4>Code graph</h4><p>Граф символов и вызовов (кто кого вызывает, кто что импортирует) — навигация по структуре, а не по тексту</p></div>
+  </div>
+  <p><em>Все три — способы прочитать «ровно то, что нужно», не затягивая в контекст весь репозиторий целиком.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Память и сжатие (compaction)</h2>
+  <ul>
+    <li>Когда сессия становится длинной, инструмент <strong>сжимает</strong> её: более ранние шаги суммаризируются, чтобы диалог снова уместился в окно</li>
+    <li>Переживает сжатие: текущая цель, ключевые решения, состояние файлов</li>
+    <li>Теряется: точные формулировки из прошлого, второстепенные детали, <strong>ход рассуждений</strong>, приведший к решению</li>
+  </ul>
+  <blockquote>Сжатие — это фича, а не баг. Но оно с потерями. Планируйте это заранее.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Решения должны жить в файлах</h2>
+  <ul>
+    <li>История чата не является надёжным хранилищем — она сжимается или теряется вместе с сессией</li>
+    <li>Надёжная память — это <strong>файлы в репозитории</strong>:
+      <ul>
+        <li><code>CLAUDE.md</code> / <code>AGENTS.md</code> — постоянные инструкции для агента</li>
+        <li>спецификации, ADR, комментарии в коде — устойчивые решения</li>
+      </ul>
+    </li>
+  </ul>
+  <blockquote>Правило: если потерю было бы обидно допустить — это должно быть в файле, а не только в том, что вы напечатали в чате.</blockquote>
+  <div class="svg-scene">
+    <svg viewBox="0 0 560 270" xmlns="http://www.w3.org/2000/svg" font-family="var(--mono,monospace)" font-size="15">
+      <style>
+        .dir{fill:var(--accent);font-weight:700;} .file{fill:var(--fg);}
+        .hl{fill:var(--accent-3);font-weight:700;} .cm{fill:var(--fg-dim);font-size:12px;}
+        .ln{fill:var(--fg-dim);}
+      </style>
+      <text x="0" y="20"><tspan class="dir">repo/</tspan></text>
+      <text x="0" y="46"><tspan class="ln">├── </tspan><tspan class="hl">CLAUDE.md</tspan><tspan class="cm">   ← читается каждую сессию</tspan></text>
+      <text x="0" y="72"><tspan class="ln">├── </tspan><tspan class="dir">.agents/</tspan><tspan class="cm">   ← skills, правила, подагенты</tspan></text>
+      <text x="0" y="98"><tspan class="ln">│   └── </tspan><tspan class="dir">skills/</tspan></text>
+      <text x="0" y="124"><tspan class="ln">├── </tspan><tspan class="dir">docs/</tspan></text>
+      <text x="0" y="150"><tspan class="ln">│   └── </tspan><tspan class="dir">specs/</tspan><tspan class="cm">   ← спецификации фич (Модуль 3)</tspan></text>
+      <text x="0" y="176"><tspan class="ln">│       └── </tspan><tspan class="file">export-csv.md</tspan></text>
+      <text x="0" y="202"><tspan class="ln">├── </tspan><tspan class="dir">tasks/</tspan><tspan class="cm">   ← одноразовые планы (Модуль 5)</tspan></text>
+      <text x="0" y="228"><tspan class="ln">├── </tspan><tspan class="dir">features/</tspan><tspan class="cm">   ← код по фичам</tspan></text>
+      <text x="0" y="254"><tspan class="ln">└── </tspan><tspan class="dir">src/</tspan></text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Права доступа и песочницы</h2>
+  <ul>
+    <li>Агент спрашивает разрешение перед <strong>рискованными, труднообратимыми</strong> действиями:
+      <ul>
+        <li>выполнение произвольных команд оболочки</li>
+        <li>изменение/удаление файлов вне рабочего набора</li>
+        <li>доступ к сети, установка пакетов</li>
+      </ul>
+    </li>
+    <li>Дело не в неуверенности модели — это осознанно заложенная <strong>граница доверия</strong></li>
+    <li>Право на чтение ≠ право на запись ≠ право на выполнение</li>
+  </ul>
+  <ol class="trace-log">
+    <li><span class="tag danger">Опасно</span><code>rm -rf</code> — необратимое удаление</li>
+    <li><span class="tag danger">Опасно</span><code>curl ... | sh</code> — выполнение кода из сети без просмотра</li>
+    <li><span class="tag danger">Опасно</span><code>git push --force</code> — может затереть чужую историю</li>
+    <li><span class="tag danger">Опасно</span>чтение <code>.env</code> / доступа к секретам</li>
+  </ol>
+  <div class="svg-scene small">
+    <svg viewBox="0 0 380 180" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .term{fill:var(--code-bg);stroke:var(--border);stroke-width:1.5;}
+        .cmd{font-family:var(--mono,monospace);font-size:14px;fill:var(--danger);}
+        .shield{fill:var(--bg-2);stroke:var(--accent-3);stroke-width:3;}
+        .shieldtxt{font:700 16px var(--font,sans-serif);fill:var(--accent-3);text-anchor:middle;}
+        .status{font:700 13px var(--font,sans-serif);fill:var(--fg);text-anchor:middle;}
+      </style>
+      <rect class="term" x="10" y="10" width="360" height="110" rx="10"/>
+      <circle cx="28" cy="28" r="5" fill="#ff6b6b"/>
+      <circle cx="46" cy="28" r="5" fill="#ffd166"/>
+      <circle cx="64" cy="28" r="5" fill="#37e6b0"/>
+      <text class="cmd" x="26" y="70">$ rm -rf build/legacy-cache/</text>
+      <g transform="translate(320,60)">
+        <path class="shield" d="M0,-24 L20,-16 V6 C20,20 10,30 0,34 C-10,30 -20,20 -20,6 V-16 Z"/>
+        <text class="shieldtxt" x="0" y="7">!</text>
+      </g>
+      <text class="status" x="190" y="150">⛔ Требуется подтверждение пользователя,</text>
+      <text class="status" x="190" y="168">прежде чем выполнить</text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Итог — агентный подход vs. чат / автодополнение</h2>
+  <table>
+    <tr><th>Чат / автодополнение</th><th>Агентный цикл</th></tr>
+    <tr><td>Предлагает</td><td>Планирует, действует, наблюдает, повторяет</td></tr>
+    <tr><td>Проверяете вы</td><td>Может проверить себя сам (тесты, вывод)</td></tr>
+    <tr><td>Нет памяти между шагами</td><td>Контекстное окно + устойчивые файлы</td></tr>
+    <tr><td>Нет модели прав доступа</td><td>Явные границы доверия</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Типичные сбои, на которые стоит обращать внимание</h2>
+  <ul>
+    <li><strong>Зацикленный повтор</strong> — одно и то же неудачное действие без новой информации</li>
+    <li><strong>Незаметное расширение задачи</strong> — «исправление» того, о чём никто не просил</li>
+    <li><strong>Исчерпание контекста посреди задачи</strong> — потеря исходной цели</li>
+    <li><strong>Излишнее доверие к выводу инструмента</strong> — вывод «успех» не перепроверяется</li>
+  </ul>
+  <p><em>Привычки против этого начнём строить с Модуля 2, а системно — в Модуле 9.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная — трассируем агента</h2>
+  <ol>
+    <li>Возьмите небольшой незнакомый учебный репозиторий</li>
+    <li>Дайте агенту одну задачу: «добавь флаг CLI, который делает X»</li>
+    <li>Залогируйте <strong>каждый</strong> вызов инструмента: чтения, grep, изменения, запуски тестов</li>
+    <li>Рядом с каждым — одно предложение: <strong>почему, по-вашему, агент это сделал?</strong></li>
+  </ol>
+  <blockquote>Цель: увидеть цикл со слайдов 6–12 вживую, в своей собственной трассировке.</blockquote>
+  <h3>Для лекции: та же трассировка в формате OpenAI-совместимого API</h3>
+  <pre><code>{ "role": "assistant", "tool_calls": [{
+    "id": "call_1", "type": "function",
+    "function": { "name": "grep",
+      "arguments": "{\"pattern\":\"add_argument\",\"path\":\"src/cli.py\"}" }
+}]}
+{ "role": "tool", "tool_call_id": "call_1",
+  "content": "src/cli.py:14: add_argument(\"--output\")\nsrc/cli.py:18: add_argument(\"--dry-run\")" }</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li><strong>Аннотированная трассировка вызовов инструментов</strong> (как таблица на слайде 12)</li>
+    <li><strong>Описание на полстраницы</strong>, отвечающее на вопросы:
+      <ul>
+        <li>На что агент потратил больше всего «усилий» — на чтение/понимание или на написание кода?</li>
+        <li>Что-нибудь удивило вас в порядке действий?</li>
+      </ul>
+    </li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 02</p>
+  <h2>Далее: Промптинг и постановка задачи</h2>
+  <p>Агентный подход = план → действие → наблюдение → повтор с реальной верификацией. Контекстные окна конечны; сжатие происходит с потерями — устойчивую память нужно класть в файлы. Права доступа существуют потому, что действие/наблюдение затрагивают реальный мир.</p>
+  <p><em>Точность на входе — точность на выходе.</em></p>
+</section>
+
+</main>
+
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

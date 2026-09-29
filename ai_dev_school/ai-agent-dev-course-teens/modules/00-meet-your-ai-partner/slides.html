@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 0 — Знакомство с твоим ИИ-напарником</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 0 · Build With AI</p>
+  <h1>Знакомство с твоим ИИ-напарником</h1>
+  <div class="svg-scene small">
+    <svg viewBox="0 0 200 200" width="200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="orbGrad" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stop-color="var(--accent-4)"/>
+          <stop offset="55%" stop-color="var(--accent)"/>
+          <stop offset="100%" stop-color="var(--accent-3)"/>
+        </radialGradient>
+      </defs>
+      <polygon points="100,20 170,60 170,140 100,180 30,140 30,60" fill="none" stroke="var(--border)" stroke-width="2"/>
+      <polygon points="100,45 148,72 148,128 100,155 52,128 52,72" fill="none" stroke="var(--accent)" stroke-width="3" opacity=".6"/>
+      <circle cx="100" cy="100" r="34" fill="url(#orbGrad)"/>
+      <circle cx="100" cy="100" r="34" fill="none" stroke="#fff" stroke-width="1" opacity=".3"/>
+    </svg>
+  </div>
+  <p class="course">Build With AI: An Agentic Coding Course for Teens</p>
+</section>
+
+<section class="slide">
+  <h2>Сегодня</h2>
+  <ul>
+    <li>Что такое ИИ-агент на самом деле (и чем он не является)</li>
+    <li>Что он реально умеет делать</li>
+    <li>Что ему нужно от тебя</li>
+    <li>Практика: запускаем его и даём одну крошечную задачу</li>
+    <li>Чекпоинт: объяснить, что произошло, а не просто «сработало»</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Миф №1</h2>
+  <div class="myth-grid">
+    <div class="myth-card myth">
+      <span class="badge">Миф</span>
+      <p>Это просто автодополнение — угадывает следующее слово, по одному за раз.</p>
+    </div>
+    <div class="myth-card real">
+      <span class="badge">На самом деле</span>
+      <p>Агент читает весь запрос целиком, планирует несколько шагов и совершает реальные действия на твоём компьютере.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Миф №2</h2>
+  <div class="myth-grid">
+    <div class="myth-card myth">
+      <span class="badge">Миф</span>
+      <p>Это магия — чёрная коробка, которая просто что-то выдаёт.</p>
+    </div>
+    <div class="myth-card real">
+      <span class="badge">На самом деле</span>
+      <p>Каждое действие — конкретный, видимый шаг: читает файлы, пишет файлы, выполняет команды, проверяет результат.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Цикл ещё раз</h2>
+  <p>Напарник, который совершает реальные действия по циклу, пока не решит, что задача выполнена.</p>
+  <pre><code>ЧИТАЕТ    → разбирается, что уже есть
+ПИШЕТ     → вносит изменение
+ЗАПУСКАЕТ → выполняет его
+ПРОВЕРЯЕТ → а точно сработало?</code></pre>
+  <p><em>Повторяется, пока агент не решит, что готово — не один большой прыжок от запроса к результату.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Тот же напарник, реальные границы</h2>
+  <ul>
+    <li>Любому напарнику, которому доверяешь настоящую работу, нужны границы — этот не исключение</li>
+    <li>Claude Code спрашивает <span class="chip">🔒 разрешение</span> перед изменением файлов или выполнением команд</li>
+    <li>Это не тормоза инструмента — это граница, которая работает так, как задумано</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Чекпоинт</h2>
+  <p>Своими словами, несколько предложений:</p>
+  <div class="checkpoint">
+    <div class="label">✅ Проверь себя</div>
+    <p>Что агент реально <em>сделал</em>, шаг за шагом? На что ему понадобилось твоё разрешение — почему, как думаешь, эта граница существует?</p>
+  </div>
+  <p><em>«Он просто сделал это» значит: притормози и пересмотри сессию ещё раз.</em></p>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 01</p>
+  <h2>Дальше: Как мыслит агент — цикл</h2>
+  <p>Ты дашь ему небольшую многошаговую задачу и запишешь каждое его действие по порядку — полный протокол по шагам.</p>
+</section>
+
+</main>
+
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+
+<script src="../../assets/deck.js"></script>
+</body>
+</html>
