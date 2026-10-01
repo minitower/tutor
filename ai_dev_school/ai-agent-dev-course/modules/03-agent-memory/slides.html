@@ -24,7 +24,8 @@
     <li>Файловая память: <code>SOUL.md</code>, <code>USER.md</code>, <code>MEMORY.md</code></li>
     <li>Многослойные системы памяти на примере TencentDB Agent Memory</li>
     <li>Своя память: SQLite + поиск, слияние результатов (RRF)</li>
-    <li>Что запоминать, риски (poisoning, приватность) и тесты памяти</li>
+    <li>Кто и как пишет в память, как агент решает записать и вспомнить</li>
+    <li>Что запоминать, риски (poisoning, приватность), тесты и повышение recall</li>
     <li>Лабораторная: память ассистента, проверенная тестами</li>
   </ul>
 </section>
@@ -129,6 +130,21 @@ type: user            # user | feedback | project | reference
 </section>
 
 <section class="slide">
+  <h2>Кто пишет в память — и как это запретить</h2>
+  <div class="trio">
+    <div class="card"><h4>По инструкции</h4><p>Фреймворк или промпт разрешает агенту обновлять память и «душу» (OpenClaw-стиль, авто-память Claude Code)</p></div>
+    <div class="card before"><h4>По чужой команде</h4><p>Страница или тикет пишет «обнови свой SOUL.md» — это memory poisoning; файл грузится в каждую сессию</p></div>
+    <div class="card"><h4>Через широкий доступ</h4><p>Обычный инструмент записи файлов покрывает и <code>SOUL.md</code> — агент может «улучшить» персону сам</p></div>
+  </div>
+  <pre><code style="font-size:.82rem; line-height:1.32;">{ "permissions": { "deny": ["Edit(SOUL.md)", "Write(SOUL.md)"] } }
+# плюс: chmod/read-only в git, PreToolUse-хук, файл вне доступных каталогов</code></pre>
+  <ul>
+    <li>Фраза «не трогай SOUL.md» в промпте — лишь подсказка: её перебьёт инъекция. Нужен запрет на уровне прав</li>
+    <li>SOUL.md пишет человек и ревьюит как код; агенту — только слои, которые меняются (заметки, дневные файлы)</li>
+  </ul>
+</section>
+
+<section class="slide">
   <h2>TencentDB Agent Memory: обзор</h2>
   <div class="svg-scene">
 <svg viewBox="0 0 860 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Слои чат-памяти L0–L3 и другие активы">
@@ -223,6 +239,34 @@ def forget(user, rowid):
 </section>
 
 <section class="slide">
+  <h2>Как агент решает, что записать</h2>
+  <div class="trio">
+    <div class="card"><h4>Инструкция в промпте</h4><p>«Сохраняй стабильные предпочтения, поправки, решения и почему». Так работает авто-память Claude Code</p></div>
+    <div class="card"><h4>Инструмент <code>remember()</code></h4><p>Модель сама вызывает его, когда считает факт достойным сохранения</p></div>
+    <div class="card"><h4>Авто-извлечение</h4><p>Отдельный шаг после сессии читает транскрипт и вытаскивает факты (так делают многослойные системы вроде Tencent)</p></div>
+  </div>
+  <ul>
+    <li>Встроенного механизма нет — решает то, что вы настроили. Критерии — со слайда «что запоминать»</li>
+    <li><strong>Фильтр на входе:</strong> писать только факт с источником, датой и типом; всё из недоверенного контента — с пометкой или с подтверждением человеком</li>
+    <li>Записать в память можно и самому: правка файла, «запомни, что…», собственный <code>remember()</code>; заранее подтверждённые факты — лучшая стартовая память</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Как агент решает, когда вспомнить</h2>
+  <div class="trio">
+    <div class="card"><h4>Всегда в контексте</h4><p><code>SOUL.md</code>, <code>CLAUDE.md</code>, индекс <code>MEMORY.md</code>. Стоит токенов — держите коротким</p></div>
+    <div class="card"><h4>Авто-поиск</h4><p>Ваш код ищет в памяти на каждое сообщение и вставляет топ-результаты. Предсказуемо, но тянет лишнее</p></div>
+    <div class="card"><h4>Инструмент поиска</h4><p><code>search_memory(query)</code>, в том числе через MCP. Модель решает сама — всё держится на описании инструмента</p></div>
+  </div>
+  <ul>
+    <li>Надёжнее всего сочетание: <strong>короткий индекс всегда в контексте + инструмент поиска</strong></li>
+    <li>Индекс — причина, по которой агент вообще знает, что в памяти что-то есть и стоит заглянуть</li>
+    <li>Размытое описание инструмента = агент его не вызывает: напишите, <em>когда</em> его использовать</li>
+  </ul>
+</section>
+
+<section class="slide">
   <h2>Риски памяти</h2>
   <ul>
     <li><strong>Memory poisoning:</strong> вредная «инструкция» из недоверенного контента (модуль 12) попала в память и влияет на все будущие сессии</li>
@@ -246,6 +290,37 @@ def forget(user, rowid):
     <li>Четыре теста, которые нужны любой памяти: <strong>recall</strong> (вспомнил), <strong>изоляция</strong>, <strong>удаление</strong>, <strong>противоречие</strong> (новое вытесняет старое)</li>
     <li>Поведенческий тест: положить факт, начать новую сессию, проверить, что агент им воспользовался</li>
     <li>Запускайте в CI — как тесты политики из модуля 14</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Как повысить recall</h2>
+  <table style="font-size:.88em;">
+    <tr><th>Уровень</th><th>Что делать</th></tr>
+    <tr><td><strong>Хранение</strong></td><td>один факт — одна запись; <em>Why</em> и <em>How to apply</em>; говорящие имя и description; тип, дата, теги</td></tr>
+    <tr><td><strong>Поиск</strong></td><td>гибрид: ключевой (BM25 / FTS5) + векторный через RRF; reranker на топе; фильтры по пользователю, проекту, дате</td></tr>
+    <tr><td><strong>Запрос</strong></td><td>модель переформулирует и расширяет запрос; если результаты слабые — ищет ещё раз</td></tr>
+    <tr><td><strong>Измерение</strong></td><td>мини-eval: N фактов в память → N вопросов в новой сессии; метрики — hit rate и верность ответа</td></tr>
+  </table>
+  <p>Без eval вы угадываете: «кажется, помнит» — не метрика.</p>
+</section>
+
+<section class="slide">
+  <h2>Как улучшать память в целом</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Записать</span><span class="flow-desc">фильтр, источник, дата</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Вспомнить</span><span class="flow-desc">индекс + поиск</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Проверить</span><span class="flow-desc">eval, обратная связь</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--danger)"><span class="flow-label">Почистить</span><span class="flow-desc">слияние, TTL, удаление</span></div>
+  </div>
+  <ul>
+    <li><strong>Консолидация:</strong> сливайте дубли, помечайте <code>superseded</code> (unittest → pytest), сжимайте дневные заметки в долгосрочные</li>
+    <li><strong>Срок жизни:</strong> TTL, удаление малоценного, потолок размера для файлов, что грузятся всегда</li>
+    <li><strong>Обратная связь:</strong> «это неверно» от пользователя понижает или удаляет запись; упомянутый файл или флаг — проверять</li>
+    <li>Изоляция пользователей и право посмотреть и удалить свои данные — требование приватности, а не «улучшение»</li>
   </ul>
 </section>
 

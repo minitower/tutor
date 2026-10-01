@@ -23,6 +23,8 @@ size: 16:9
 - Protocol primitives, transports, the call format
 - Practice: a database, open servers, your own server
 - MCP vs. CLI vs. Skill — how to choose
+- MCP history, connecting in KiloCode, MCP over FastAPI
+- RAG and MCP: classic vs. agentic RAG
 - MCP security and running inside an agent system
 - Lab: a read-only DB through MCP + a mini server
 
@@ -65,6 +67,34 @@ By the end of this module you can:
 
 <!-- Slide 6 -->
 
+## Where MCP Came From
+
+- **Before 2024:** every chat app and IDE wired itself to every data source by hand — the N × M problem
+- The model: the **Language Server Protocol** (Microsoft, 2016) — one standard between editors and languages
+- **5 Nov 2024:** first spec revision (`2024-11-05`); **25 Nov 2024:** Anthropic announces MCP as open source
+- Day one: Python and TypeScript SDKs plus reference servers (Google Drive, Slack, GitHub, Git, Postgres, Puppeteer)
+
+---
+
+<!-- Slide 7 -->
+
+## From Experiment to Standard
+
+| When | What happened |
+|---|---|
+| Mar 2025 | OpenAI adds MCP to its Agents SDK; spec `2025-03-26`: Streamable HTTP and OAuth |
+| Apr–May 2025 | Google DeepMind and Microsoft announce support |
+| Jun 2025 | spec `2025-06-18`: structured tool output, elicitation |
+| Sep 2025 | MCP Registry (preview) |
+| Nov 2025 | spec `2025-11-25`: tasks, further auth work |
+| Dec 2025 | MCP moves to the **Agentic AI Foundation** (Linux Foundation) next to AGENTS.md and goose |
+
+Takeaway: a vendor protocol became a neutral standard in a year — but the spec still changes fast, so pin versions and check the changelog.
+
+---
+
+<!-- Slide 8 -->
+
 ## Architecture and Transports
 
 **Host** → **Client** → **Server**
@@ -78,7 +108,7 @@ The old SSE transport is deprecated. The recent spec revision made requests self
 
 ---
 
-<!-- Slide 7 -->
+<!-- Slide 9 -->
 
 ## What a Server Offers: Three Primitives
 
@@ -90,7 +120,7 @@ On the client side: **elicitation** — the server asks the user for missing inf
 
 ---
 
-<!-- Slide 8 -->
+<!-- Slide 10 -->
 
 ## What a Tool Call Looks Like
 
@@ -109,7 +139,7 @@ On the client side: **elicitation** — the server asks the user for missing inf
 
 ---
 
-<!-- Slide 9 -->
+<!-- Slide 11 -->
 
 ## Connecting in Claude Code
 
@@ -132,7 +162,30 @@ Tools are named `mcp__<server>__<tool>` — use these names in permission rules,
 
 ---
 
-<!-- Slide 10 -->
+<!-- Slide 12 -->
+
+## Connecting in KiloCode
+
+Kilo Code is an open-source coding agent for VS Code / JetBrains. MCP servers live in two JSON files:
+
+- **Global** — `mcp_settings.json` (MCP Servers → *Edit Global MCP*)
+- **Project** — `.kilocode/mcp.json` in the repo root, shared via git (no secrets!); the project entry wins on a name clash
+
+```json
+{ "mcpServers": {
+    "docs": { "command": "npx",
+              "args": ["-y", "@modelcontextprotocol/server-filesystem", "./docs"],
+              "alwaysAllow": [], "disabled": false },
+    "sentry": { "type": "streamable-http", "url": "https://mcp.sentry.dev/mcp" } } }
+```
+
+- `alwaysAllow` = tools that run without asking; keep it empty or read-only
+- Same `mcpServers` shape in Claude Desktop and Cursor; VS Code Copilot uses `.vscode/mcp.json` with `servers`
+- The Marketplace installs popular servers in one click — the security checklist still applies
+
+---
+
+<!-- Slide 13 -->
 
 ## Example 1: A Database Through MCP
 
@@ -150,7 +203,7 @@ Tools are named `mcp__<server>__<tool>` — use these names in permission rules,
 
 ---
 
-<!-- Slide 11 -->
+<!-- Slide 14 -->
 
 ## Example 2: Open MCP Servers
 
@@ -168,7 +221,7 @@ A catalog of published servers is the MCP Registry (`registry.modelcontextprotoc
 
 ---
 
-<!-- Slide 12 -->
+<!-- Slide 15 -->
 
 ## Your Own MCP Server in 10 Lines
 
@@ -193,7 +246,35 @@ if __name__ == "__main__":
 
 ---
 
-<!-- Slide 13 -->
+<!-- Slide 16 -->
+
+## MCP over FastAPI
+
+Already have a FastAPI service? Expose it as MCP instead of writing a second server:
+
+```python
+from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP        # pip install fastapi-mcp
+
+app = FastAPI()
+
+@app.get("/tickets/{project}/open", operation_id="count_open")
+def count_open(project: str) -> int:
+    """How many open tickets a project has (read-only)."""
+    return db_count(project)
+
+mcp = FastApiMCP(app, include_operations=["count_open"])   # whitelist
+mcp.mount_http()                          # MCP at /mcp (older versions: mount())
+```
+
+- Connect: `claude mcp add --transport http tickets http://localhost:8000/mcp`
+- `operation_id` → tool name, docstring → description, Pydantic models → input schema
+- Auth reuses FastAPI `Depends`; **don't expose every endpoint** — whitelist read-only operations
+- Alternative: `FastMCP.from_fastapi(app)` (FastMCP library). Good fit when the API already exists; a hand-written server is better when tools should be narrower than endpoints
+
+---
+
+<!-- Slide 17 -->
 
 ## MCP, CLI or Skill: What to Choose
 
@@ -208,7 +289,38 @@ MCP tool descriptions occupy context. Claude Code loads tools on demand by defau
 
 ---
 
-<!-- Slide 14 -->
+<!-- Slide 18 -->
+
+## RAG and MCP: Different Layers
+
+- **RAG** is a technique: find relevant chunks → put them into the prompt → answer. It decides *what the model sees*
+- **MCP** is a protocol: it decides *how the model reaches a system* — including a retriever
+- They are not alternatives: wrap your vector search as a tool `search_docs(query)` in an MCP server and any agent can use it
+
+| | Classic RAG | Agentic RAG via MCP |
+|---|---|---|
+| Who triggers retrieval | your code, always | the agent, when it decides |
+| Sources | one index | docs + DB + tracker + web |
+| Queries | one | several, reformulated |
+
+---
+
+<!-- Slide 19 -->
+
+## Classic RAG or Agentic RAG
+
+| Choose | When | Example |
+|---|---|---|
+| **Classic RAG** | one knowledge base, one-shot question, tight latency and cost, predictable behavior | FAQ bot, support over docs, internal wiki search |
+| **Agentic RAG (MCP)** | several sources, multi-step questions, live or per-user data, the agent must verify itself | coding agent: code + tickets + DB; analyst assistant |
+| **Hybrid** | pipeline covers the common path; MCP search tool as a fallback | support bot that escalates to the ticket system |
+
+- Agentic costs more: tokens, latency, non-determinism — measure before switching
+- Retrieved text is **untrusted** (Module 12); access control must be checked per user inside the server
+
+---
+
+<!-- Slide 20 -->
 
 ## MCP Security: Threats
 
@@ -222,7 +334,7 @@ MCP tool descriptions occupy context. Claude Code loads tools on demand by defau
 
 ---
 
-<!-- Slide 15 -->
+<!-- Slide 21 -->
 
 ## MCP Security: Controls
 
@@ -240,7 +352,7 @@ MCP tool descriptions occupy context. Claude Code loads tools on demand by defau
 
 ---
 
-<!-- Slide 16 -->
+<!-- Slide 22 -->
 
 ## MCP in an Agent System and in CI
 
@@ -251,7 +363,7 @@ MCP tool descriptions occupy context. Claude Code loads tools on demand by defau
 
 ---
 
-<!-- Slide 17 -->
+<!-- Slide 23 -->
 
 ## Lab — A Database Through MCP
 
@@ -263,7 +375,7 @@ MCP tool descriptions occupy context. Claude Code loads tools on demand by defau
 
 ---
 
-<!-- Slide 18 -->
+<!-- Slide 24 -->
 
 ## Deliverable
 
@@ -274,7 +386,7 @@ MCP tool descriptions occupy context. Claude Code loads tools on demand by defau
 
 ---
 
-<!-- Slide 19 -->
+<!-- Slide 25 -->
 
 ## Next: Long-Term Agent Memory
 

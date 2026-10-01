@@ -23,6 +23,8 @@
     <li>Какую проблему решает MCP и как он устроен</li>
     <li>Примитивы протокола, транспорты, формат вызова</li>
     <li>Практика: база данных, открытые серверы, свой сервер</li>
+    <li>История MCP, подключение в KiloCode, MCP поверх FastAPI</li>
+    <li>RAG и MCP: классический и агентный RAG</li>
     <li>MCP или CLI или Skill — как выбирать</li>
     <li>Безопасность MCP и работа в агентной системе</li>
     <li>Лабораторная: read-only БД через MCP + мини-сервер</li>
@@ -89,6 +91,36 @@
 </section>
 
 <section class="slide">
+  <h2>Откуда взялся MCP</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--danger)"><span class="flow-label">До 2024</span><span class="flow-desc">каждая IDE × каждый источник — вручную (N × M)</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">LSP, 2016</span><span class="flow-desc">образец: один стандарт между редакторами и языками</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">25 нояб 2024</span><span class="flow-desc">Anthropic открывает MCP (spec <code>2024-11-05</code>)</span></div>
+  </div>
+  <ul>
+    <li>В первый день: SDK для Python и TypeScript</li>
+    <li>Референс-серверы: Google Drive, Slack, GitHub, Git, Postgres, Puppeteer</li>
+    <li>Идея не в новой технологии, а в <strong>общем разъёме</strong>: один раз написанный сервер работает с любым клиентом</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>От эксперимента к стандарту</h2>
+  <table style="font-size:.9em;">
+    <tr><th>Когда</th><th>Что произошло</th></tr>
+    <tr><td>Мар 2025</td><td>OpenAI добавляет MCP в Agents SDK; spec <code>2025-03-26</code>: Streamable HTTP и OAuth</td></tr>
+    <tr><td>Апр–май 2025</td><td>Google DeepMind и Microsoft объявляют о поддержке</td></tr>
+    <tr><td>Июн 2025</td><td>spec <code>2025-06-18</code>: структурированный вывод инструментов, elicitation</td></tr>
+    <tr><td>Сен 2025</td><td>MCP Registry (preview)</td></tr>
+    <tr><td>Ноя 2025</td><td>spec <code>2025-11-25</code>: tasks, дальнейшая работа над авторизацией</td></tr>
+    <tr><td>Дек 2025</td><td>MCP передан в <strong>Agentic AI Foundation</strong> (Linux Foundation) рядом с AGENTS.md и goose</td></tr>
+  </table>
+  <p>Протокол одного вендора за год стал нейтральным стандартом. Но спецификация быстро меняется — фиксируйте версии и читайте changelog.</p>
+</section>
+
+<section class="slide">
   <h2>Архитектура и транспорты</h2>
   <div class="flow-loop">
     <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Host</span><span class="flow-desc">Claude Code, IDE, ваш агент</span></div>
@@ -148,6 +180,24 @@ claude mcp get sentry ; claude mcp remove sentry</code></pre>
 </section>
 
 <section class="slide">
+  <h2>Подключение в KiloCode</h2>
+  <pre><code style="font-size:.82rem; line-height:1.32;">{ "mcpServers": {
+    "docs":   { "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-filesystem", "./docs"],
+                "alwaysAllow": [], "disabled": false },
+    "sentry": { "type": "streamable-http", "url": "https://mcp.sentry.dev/mcp" } } }</code></pre>
+  <table style="font-size:.9em;">
+    <tr><th>Уровень</th><th>Файл</th><th>Для чего</th></tr>
+    <tr><td>глобальный</td><td><code>mcp_settings.json</code> (MCP Servers → <em>Edit Global MCP</em>)</td><td>ваши серверы во всех проектах</td></tr>
+    <tr><td>проектный</td><td><code>.kilo/mcp.json</code> в корне репо</td><td>общие серверы через git — без секретов; побеждает при совпадении имён</td></tr>
+  </table>
+  <ul>
+    <li><code>alwaysAllow</code> — инструменты без подтверждения: пусто или только read-only</li>
+    <li>Та же форма <code>mcpServers</code> — в Claude Desktop и Cursor; VS Code Copilot: <code>.vscode/mcp.json</code> с ключом <code>servers</code>. Marketplace ставит серверы в один клик — чек-лист безопасности всё равно действует</li>
+  </ul>
+</section>
+
+<section class="slide">
   <h2>Пример 1: база данных через MCP</h2>
   <pre><code style="font-size:.85rem; line-height:1.32;">{ "mcpServers": { "db": {
     "type": "stdio", "command": "npx",
@@ -198,6 +248,28 @@ if __name__ == "__main__":
 </section>
 
 <section class="slide">
+  <h2>MCP поверх FastAPI</h2>
+  <pre><code style="font-size:.8rem; line-height:1.3;">from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP        # pip install fastapi-mcp
+
+app = FastAPI()
+
+@app.get("/tickets/{project}/open", operation_id="count_open")
+def count_open(project: str) -&gt; int:
+    """Сколько открытых тикетов в проекте (только чтение)."""
+    return db_count(project)
+
+mcp = FastApiMCP(app, include_operations=["count_open"])   # белый список
+mcp.mount_http()                          # MCP на /mcp (старые версии: mount())</code></pre>
+  <ul>
+    <li>Подключение: <code>claude mcp add --transport http tickets http://localhost:8000/mcp</code></li>
+    <li><code>operation_id</code> → имя инструмента, docstring → описание, Pydantic → схема аргументов; авторизация — через <code>Depends</code></li>
+    <li><strong>Не публикуйте все эндпоинты</strong> — белый список read-only операций. Альтернатива: <code>FastMCP.from_fastapi(app)</code></li>
+    <li>API уже есть — оберните; нужны инструменты уже, чем эндпоинты — пишите сервер вручную</li>
+  </ul>
+</section>
+
+<section class="slide">
   <h2>MCP, CLI или Skill: что выбрать</h2>
   <table style="font-size:.88em;">
     <tr><th>Ситуация</th><th>Выбор</th><th>Почему</th></tr>
@@ -207,6 +279,36 @@ if __name__ == "__main__":
     <tr><td>Правило, которое должно выполняться всегда</td><td>Hook</td><td>модуль 13</td></tr>
   </table>
   <p>Описания MCP-инструментов занимают контекст. Claude Code по умолчанию подгружает инструменты по требованию (tool search) — но лишние серверы всё равно отключайте.</p>
+</section>
+
+<section class="slide">
+  <h2>RAG и MCP: разные слои</h2>
+  <div class="trio" style="grid-template-columns: 1fr 1fr;">
+    <div class="card"><h4>RAG — техника</h4><p>Найти релевантные фрагменты → положить в промпт → ответить. Решает, <strong>что видит модель</strong></p></div>
+    <div class="card"><h4>MCP — протокол</h4><p>Решает, <strong>как модель добирается до системы</strong> — в том числе до ретривера</p></div>
+  </div>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Агент</span><span class="flow-desc">решает, искать ли и где</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">MCP-сервер</span><span class="flow-desc"><code>search_docs</code>, <code>query</code>, <code>get_ticket</code></span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Источники</span><span class="flow-desc">векторный индекс, БД, трекер</span></div>
+  </div>
+  <p>Не альтернативы: оберните векторный поиск в инструмент — и любой агент сможет им пользоваться; если найдено мало, он переформулирует запрос и ищет снова.</p>
+</section>
+
+<section class="slide">
+  <h2>Классический RAG или агентный RAG</h2>
+  <table style="font-size:.85em;">
+    <tr><th>Выбор</th><th>Когда</th><th>Пример</th></tr>
+    <tr><td><strong>Классический RAG</strong></td><td>одна база знаний, разовый вопрос, жёсткие latency и стоимость, нужна предсказуемость; поиск запускает ваш код</td><td>FAQ-бот, поддержка по документации, поиск по вики</td></tr>
+    <tr><td><strong>Агентный RAG (MCP)</strong></td><td>несколько источников, многошаговые вопросы, живые или персональные данные; агент сам решает, что и сколько раз искать</td><td>кодинг-агент: код + тикеты + БД; ассистент аналитика</td></tr>
+    <tr><td><strong>Гибрид</strong></td><td>пайплайн закрывает типовой путь, MCP-поиск — запасной</td><td>бот поддержки, эскалирующий в трекер</td></tr>
+  </table>
+  <ul>
+    <li>Агентный подход дороже: токены, задержка, недетерминизм — измеряйте до переключения</li>
+    <li>Найденный текст <strong>ненадёжен</strong> (Модуль 12); права доступа проверяйте на сервере, на каждого пользователя</li>
+  </ul>
 </section>
 
 <section class="slide">

@@ -50,6 +50,17 @@ Module 2 — Build With AI
 
 <!-- Slide 5 -->
 
+## Where MCP Came From
+
+- Before: every app needed its own custom plug to every service — a mess of cables
+- **Nov 2024:** Anthropic released MCP as an open standard, inspired by how code editors share one protocol for many languages
+- **2025:** OpenAI, Google and Microsoft added support — now it works across most AI tools
+- **Dec 2025:** MCP moved to the Linux Foundation, so no single company owns it
+
+---
+
+<!-- Slide 6 -->
+
 ## Three Roles
 
 - **Host** — the program with the AI (Claude Code, an editor)
@@ -59,7 +70,7 @@ Module 2 — Build With AI
 
 ---
 
-<!-- Slide 6 -->
+<!-- Slide 7 -->
 
 ## What a Server Can Offer
 
@@ -70,7 +81,7 @@ Module 2 — Build With AI
 
 ---
 
-<!-- Slide 7 -->
+<!-- Slide 8 -->
 
 ## Connecting a Server
 
@@ -84,7 +95,26 @@ The shared project file is `.mcp.json` (no secrets!). The tool is named `mcp__sc
 
 ---
 
-<!-- Slide 8 -->
+<!-- Slide 9 -->
+
+## Connecting in KiloCode
+
+Kilo Code is a free coding agent inside VS Code. Its MCP servers live in a JSON file:
+
+- Project file: `.kilocode/mcp.json` (no secrets!)
+- Global file: `mcp_settings.json` (MCP Servers → *Edit Global MCP*)
+
+```json
+{ "mcpServers": { "scores": {
+    "command": "python", "args": ["scores_server.py"],
+    "alwaysAllow": [] } } }
+```
+
+Keep `alwaysAllow` empty — then the agent asks you before every tool call.
+
+---
+
+<!-- Slide 10 -->
 
 ## Your Own Server in 10 Lines
 
@@ -110,7 +140,18 @@ The description and types are what the agent sees. One narrow tool beats ten bro
 
 ---
 
-<!-- Slide 9 -->
+<!-- Slide 11 -->
+
+## MCP and RAG
+
+- **RAG** = search your documents, paste the best pieces into the prompt
+- **MCP** = the plug the agent uses to reach tools — including a search tool
+- Fixed question over one pile of notes → plain RAG is simpler and cheaper
+- Question that needs several sources or several searches → give the agent a search tool through MCP
+
+---
+
+<!-- Slide 12 -->
 
 ## Plugging In = Trusting
 
@@ -121,7 +162,7 @@ The description and types are what the agent sees. One narrow tool beats ten bro
 
 ---
 
-<!-- Slide 10 -->
+<!-- Slide 13 -->
 
 ## The "Can I Plug It In?" Checklist
 
@@ -133,7 +174,7 @@ The description and types are what the agent sees. One narrow tool beats ten bro
 
 ---
 
-<!-- Slide 11 -->
+<!-- Slide 14 -->
 
 ## Hands-On
 
@@ -147,7 +188,7 @@ Write your own 5-item checklist.
 
 ---
 
-<!-- Slide 12 -->
+<!-- Slide 15 -->
 
 ## Checkpoint
 
@@ -157,7 +198,7 @@ Write your own 5-item checklist.
 
 ---
 
-<!-- Slide 13 -->
+<!-- Slide 16 -->
 
 ## Recap
 
@@ -168,7 +209,7 @@ Write your own 5-item checklist.
 
 ---
 
-<!-- Slide 14 -->
+<!-- Slide 17 -->
 
 ## Next Up
 
