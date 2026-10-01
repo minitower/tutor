@@ -152,7 +152,7 @@ src/cli.py:18:    parser.add_argument("--dry-run", ...)
   - the agent gets stuck and asks the human
   - a permission gate blocks further action
   - a hard limit (turns, time, context) is hit
-- Stopping correctly is *harder than it looks* — more in Module 9
+- Stopping correctly is *harder than it looks* — more in Module 12
 
 ---
 
@@ -284,7 +284,7 @@ PLAN:    done — summarize for the user
 - **Context exhaustion mid-task** — losing track of the original goal
 - **Over-trusting tool output** — not double-checking a "success" claim
 
-*We'll build habits against these starting Module 2, formally in Module 9.*
+*We'll build habits against these starting Module 5, formally in Module 12.*
 
 ---
 
@@ -322,5 +322,5 @@ Goal: see the loop from Slides 6–12 happen live, in your own trace.
   to files
 - Permissions exist because act/observe touches the real world
 
-**Next — Module 2: Prompting & Task Specification**
-*Precision in, precision out.*
+**Next — Module 2: MCP**
+*Hands for the agent: safe access to outside systems.*

@@ -42,7 +42,7 @@ being comfortable typing short words with an adult nearby.
 
 ## Format
 
-- 8 sessions, progressive — each idea a bit bigger than the last: a
+- 11 sessions, progressive — each idea a bit bigger than the last: a
   picture with your name on it → a button that does something → picking
   your own colors → saying exactly what you mean → a story with choices
   → finding and fixing something silly that's wrong → showing it to
@@ -77,13 +77,17 @@ actually says) — each in English and Russian.
 | # | Session | Lesson | Slides | Script |
 |---|---------|--------|--------|--------|
 | 0 | Meet the Idea Machine | [EN](modules/00-meet-the-idea-machine/lesson.md) · [RU](modules/00-meet-the-idea-machine/lesson.ru.md) | [EN](modules/00-meet-the-idea-machine/slides.md) · [RU](modules/00-meet-the-idea-machine/slides.ru.md) | [EN](modules/00-meet-the-idea-machine/lecture.md) · [RU](modules/00-meet-the-idea-machine/lecture.ru.md) |
-| 1 | A Button That Does Something | [EN](modules/01-a-button-that-does-something/lesson.md) · [RU](modules/01-a-button-that-does-something/lesson.ru.md) | [EN](modules/01-a-button-that-does-something/slides.md) · [RU](modules/01-a-button-that-does-something/slides.ru.md) | [EN](modules/01-a-button-that-does-something/lecture.md) · [RU](modules/01-a-button-that-does-something/lecture.ru.md) |
-| 2 | Pick Your Own Colors | [EN](modules/02-pick-your-own-colors/lesson.md) · [RU](modules/02-pick-your-own-colors/lesson.ru.md) | [EN](modules/02-pick-your-own-colors/slides.md) · [RU](modules/02-pick-your-own-colors/slides.ru.md) | [EN](modules/02-pick-your-own-colors/lecture.md) · [RU](modules/02-pick-your-own-colors/lecture.ru.md) |
-| 3 | Say Exactly What You Mean | [EN](modules/03-say-exactly-what-you-mean/lesson.md) · [RU](modules/03-say-exactly-what-you-mean/lesson.ru.md) | [EN](modules/03-say-exactly-what-you-mean/slides.md) · [RU](modules/03-say-exactly-what-you-mean/slides.ru.md) | [EN](modules/03-say-exactly-what-you-mean/lecture.md) · [RU](modules/03-say-exactly-what-you-mean/lecture.ru.md) |
-| 4 | What If...? A Story With Choices | [EN](modules/04-what-if-a-story-with-choices/lesson.md) · [RU](modules/04-what-if-a-story-with-choices/lesson.ru.md) | [EN](modules/04-what-if-a-story-with-choices/slides.md) · [RU](modules/04-what-if-a-story-with-choices/slides.ru.md) | [EN](modules/04-what-if-a-story-with-choices/lecture.md) · [RU](modules/04-what-if-a-story-with-choices/lecture.ru.md) |
-| 5 | Bug Hunt: Find What's Silly | [EN](modules/05-bug-hunt/lesson.md) · [RU](modules/05-bug-hunt/lesson.ru.md) | [EN](modules/05-bug-hunt/slides.md) · [RU](modules/05-bug-hunt/slides.ru.md) | [EN](modules/05-bug-hunt/lecture.md) · [RU](modules/05-bug-hunt/lecture.ru.md) |
-| 6 | Show Someone | [EN](modules/06-show-someone/lesson.md) · [RU](modules/06-show-someone/lesson.ru.md) | [EN](modules/06-show-someone/slides.md) · [RU](modules/06-show-someone/slides.ru.md) | [EN](modules/06-show-someone/lecture.md) · [RU](modules/06-show-someone/lecture.ru.md) |
-| 7 | My Big Idea | [EN](modules/07-my-big-idea/lesson.md) · [RU](modules/07-my-big-idea/lesson.ru.md) | [EN](modules/07-my-big-idea/slides.md) · [RU](modules/07-my-big-idea/slides.ru.md) | [EN](modules/07-my-big-idea/lecture.md) · [RU](modules/07-my-big-idea/lecture.ru.md) |
+| 1 | Doors for the Machine | [EN](modules/01-doors-for-the-machine/lesson.md) · [RU](modules/01-doors-for-the-machine/lesson.ru.md) | [EN](modules/01-doors-for-the-machine/slides.md) · [RU](modules/01-doors-for-the-machine/slides.ru.md) | [EN](modules/01-doors-for-the-machine/lecture.md) · [RU](modules/01-doors-for-the-machine/lecture.ru.md) |
+| 2 | The Notebook That Remembers | [EN](modules/02-the-notebook-that-remembers/lesson.md) · [RU](modules/02-the-notebook-that-remembers/lesson.ru.md) | [EN](modules/02-the-notebook-that-remembers/slides.md) · [RU](modules/02-the-notebook-that-remembers/slides.ru.md) | [EN](modules/02-the-notebook-that-remembers/lecture.md) · [RU](modules/02-the-notebook-that-remembers/lecture.ru.md) |
+| 3 | Teach the Machine a Trick | [EN](modules/03-teach-it-a-trick/lesson.md) · [RU](modules/03-teach-it-a-trick/lesson.ru.md) | [EN](modules/03-teach-it-a-trick/slides.md) · [RU](modules/03-teach-it-a-trick/slides.ru.md) | [EN](modules/03-teach-it-a-trick/lecture.md) · [RU](modules/03-teach-it-a-trick/lecture.ru.md) |
+| 4 | A Button That Does Something | [EN](modules/04-a-button-that-does-something/lesson.md) · [RU](modules/04-a-button-that-does-something/lesson.ru.md) | [EN](modules/04-a-button-that-does-something/slides.md) · [RU](modules/04-a-button-that-does-something/slides.ru.md) | [EN](modules/04-a-button-that-does-something/lecture.md) · [RU](modules/04-a-button-that-does-something/lecture.ru.md) |
+| 5 | Pick Your Own Colors | [EN](modules/05-pick-your-own-colors/lesson.md) · [RU](modules/05-pick-your-own-colors/lesson.ru.md) | [EN](modules/05-pick-your-own-colors/slides.md) · [RU](modules/05-pick-your-own-colors/slides.ru.md) | [EN](modules/05-pick-your-own-colors/lecture.md) · [RU](modules/05-pick-your-own-colors/lecture.ru.md) |
+| 6 | Say Exactly What You Mean | [EN](modules/06-say-exactly-what-you-mean/lesson.md) · [RU](modules/06-say-exactly-what-you-mean/lesson.ru.md) | [EN](modules/06-say-exactly-what-you-mean/slides.md) · [RU](modules/06-say-exactly-what-you-mean/slides.ru.md) | [EN](modules/06-say-exactly-what-you-mean/lecture.md) · [RU](modules/06-say-exactly-what-you-mean/lecture.ru.md) |
+| 7 | What If...? A Story With Choices | [EN](modules/07-what-if-a-story-with-choices/lesson.md) · [RU](modules/07-what-if-a-story-with-choices/lesson.ru.md) | [EN](modules/07-what-if-a-story-with-choices/slides.md) · [RU](modules/07-what-if-a-story-with-choices/slides.ru.md) | [EN](modules/07-what-if-a-story-with-choices/lecture.md) · [RU](modules/07-what-if-a-story-with-choices/lecture.ru.md) |
+| 8 | Bug Hunt: Find What's Silly | [EN](modules/08-bug-hunt/lesson.md) · [RU](modules/08-bug-hunt/lesson.ru.md) | [EN](modules/08-bug-hunt/slides.md) · [RU](modules/08-bug-hunt/slides.ru.md) | [EN](modules/08-bug-hunt/lecture.md) · [RU](modules/08-bug-hunt/lecture.ru.md) |
+| 9 | Show Someone | [EN](modules/09-show-someone/lesson.md) · [RU](modules/09-show-someone/lesson.ru.md) | [EN](modules/09-show-someone/slides.md) · [RU](modules/09-show-someone/slides.ru.md) | [EN](modules/09-show-someone/lecture.md) · [RU](modules/09-show-someone/lecture.ru.md) |
+| 10 | My Big Idea | [EN](modules/10-my-big-idea/lesson.md) · [RU](modules/10-my-big-idea/lesson.ru.md) | [EN](modules/10-my-big-idea/slides.md) · [RU](modules/10-my-big-idea/slides.ru.md) | [EN](modules/10-my-big-idea/lecture.md) · [RU](modules/10-my-big-idea/lecture.ru.md) |
+
 
 ## Open questions to settle before running this
 
@@ -92,4 +96,4 @@ actually says) — each in English and Russian.
 - Does each kid keep their own running "Idea Book" (paper or digital) of
   every card they've filled out, as a keepsake?
 - Is there a "show someone" moment planned with family/friends at the
-  end (Session 6/7), or does it stay just within the session?
+  end (Session 9/7), or does it stay just within the session?

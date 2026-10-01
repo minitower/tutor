@@ -49,7 +49,7 @@ it.
 ## What to watch for
 
 - **Frustration when the result isn't what they imagined.** This is
-  expected and is directly the point of Session 5 (Bug Hunt) — reframe
+  expected and is directly the point of Session 8 (Bug Hunt) — reframe
   it as "let's tell the machine what's different" rather than a failure.
 - **Losing the thread of "I wrote this, and that's why it did this."**
   If a session starts to feel like the machine is just producing things
@@ -64,7 +64,23 @@ it.
   the design, not a limitation — the goal at this age is the loop
   (idea → real thing → reaction → change), not coding vocabulary.
 - A kid wanting to skip ahead to a bigger idea before finishing the
-  sequence. Sessions 0–6 are short on purpose so that skipping isn't a
+  sequence. Sessions 0–9 are short on purpose so that skipping isn't a
   big loss — if they're itching to just build their own big idea, Session
-  7 is right there and nothing stops you from doing it early and coming
+  10 is right there and nothing stops you from doing it early and coming
   back to fill in a skipped session later.
+
+## Sessions 1–3 (doors, notebook, trick): extra notes
+
+- **Session 1 (doors):** only *local* doors to one dedicated folder
+  (`facts`), and only *look-only* — deny the server's write tools. No
+  internet-facing servers, no accounts, no tokens, ever. A server is a
+  program that runs on the computer, so install it yourself, from a source
+  you trust, and read aloud what Claude Code asks to run. If you'd rather
+  not install anything, the on-paper version teaches the same idea.
+- **Session 2 (notebook):** the notebook is a plain file the whole family
+  could read. Favorites only — never a full name, address, school, phone
+  number, passwords, or other people's names. Check every line before it
+  is written, and let the kid see how to erase one.
+- **Session 3 (trick):** keep tricks to safe steps — drawing or writing on
+  the page. A skill can run commands, so never let a trick include
+  running programs or touching files outside the course folder.

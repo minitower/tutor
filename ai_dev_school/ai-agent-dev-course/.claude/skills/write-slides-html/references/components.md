@@ -22,7 +22,7 @@ real problem→fix pair.
 ```
 
 Also valid with a `<pre><code>` instead of `<p>` inside either card
-(see module 02 slide 7 for a worked example with code on both sides).
+(see module 05 slide 7 for a worked example with code on both sides).
 
 ## `.trio` — 3 neutral cards
 

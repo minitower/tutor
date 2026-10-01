@@ -55,7 +55,7 @@ vibes, but by mechanism. Explain what a context window is and why
 compaction happens. And explain *why* — not just "you should" but
 *why* — decisions belong in files rather than chat history. That last
 one seems like a small point now; it's going to come back constantly
-for the rest of the course, especially in Module 3 when we talk about
+for the rest of the course, especially in Module 6 when we talk about
 Document-Driven Development.
 
 ---
@@ -231,7 +231,7 @@ MCP — the Model Context Protocol — which lets an agent call out to
 external tools and services in the same structured way. We're not
 diving into MCP mechanics today, but keep the name in your head; it
 comes up again later in the course when we talk about wiring agents
-into CI/CD in Module 10.
+into CI/CD in Module 13.
 
 ---
 
@@ -291,7 +291,7 @@ burn an enormous number of turns retrying a broken approach, which
 looks, from the outside, exactly like it's "still working" right up
 until you notice nothing has actually changed in ten minutes. Getting
 this right is a full topic — we're going to spend real time on
-verification discipline in Module 9. For today, just internalize that
+verification discipline in Module 12. For today, just internalize that
 "repeat until done" is doing a lot of unstated work, and part of your
 job as the human in the loop is noticing when the stopping condition
 was satisfied for the wrong reasons.
@@ -469,7 +469,7 @@ one-off chat message that will get compacted away in session two and
 forgotten by session ten.
 
 This idea is genuinely foundational to the rest of the course. Module
-3 is going to spend an entire session on exactly this principle — using
+6 is going to spend an entire session on exactly this principle — using
 written specs as the durable contract between you and the agent, and
 treating repo-level agent docs as living artifacts rather than
 one-time setup. Everything we do from here forward assumes you've
@@ -502,7 +502,7 @@ shell command can do almost anything on the machine it runs on — which
 is exactly why that's the category most tightly gated behind explicit
 permission.
 
-We're going to spend a full module on this later — Module 10 covers
+We're going to spend a full module on this later — Module 13 covers
 wiring agents into CI/CD with permission scopes and human-in-the-loop
 gates for anything irreversible. For today, just notice it happening
 in your own lab session, and notice which categories of action
@@ -549,9 +549,9 @@ exit code, a green checkmark — without checking whether that signal
 actually means what it appears to mean.
 
 We're naming these today so you have a vocabulary for what you
-observe. We're not solving them today — that's deliberate. Module 2
+observe. We're not solving them today — that's deliberate. Module 5
 starts building the habits that reduce scope creep and ambiguity at
-the prompting level, and Module 9 is entirely dedicated to
+the prompting level, and Module 12 is entirely dedicated to
 verification discipline as a formal practice. Today, just notice and
 log.
 
@@ -598,7 +598,7 @@ reaction here. If something surprised you, that's usually a sign your
 mental model of the loop and the agent's actual behavior diverged
 somewhere, and that gap is exactly the kind of thing worth
 articulating in a sentence or two. It's also useful preparation for
-Module 2, where we start being deliberate about what information an
+Module 5, where we start being deliberate about what information an
 agent needs up front versus what it can reasonably discover itself.
 
 ---
@@ -614,10 +614,10 @@ belong in files, not chat history. And permissions exist precisely
 because the act-and-observe half of this loop touches the real world:
 real files, real commands, real systems — not just a chat buffer.
 
-Everything from here forward in the course builds on this loop.
-Module 2 is about giving that loop better inputs — writing task
-specifications precisely enough that the agent spends less of its
-planning effort resolving ambiguity you could have removed up front.
-The tagline for it is "precision in, precision out," and after today's
-lab, you'll have first-hand evidence of exactly how much of an agent's
-work is spent figuring out things you didn't tell it. See you there.
+Everything from here forward in the course builds on this loop. Next
+we give that loop hands, memory and skills: Module 2 is MCP — safe access
+to outside systems — then how an agent remembers you (Module 3), then
+reusable procedures (Module 4). After that we return to precision in
+prompts (Module 5): "precision in, precision out," and after today's
+lab you'll have first-hand evidence of how much of an agent's work is
+spent figuring out things you didn't tell it. See you in Module 2.

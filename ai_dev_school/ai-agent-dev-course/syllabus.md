@@ -18,7 +18,37 @@ files in both languages.
   annotate why each one happened
 - Deliverable: annotated tool-call trace + short writeup
 
-## Module 2 — Prompting & Task Specification for Agents
+## Module 2 — MCP: Connecting Agents to External Systems
+- Objectives: connect an agent to external systems through a standard
+  protocol, safely
+- Key concepts: host/client/server, JSON-RPC, tools/resources/prompts,
+  stdio and Streamable HTTP, `claude mcp add` and `.mcp.json`, a database
+  through MCP, open servers, writing your own, MCP vs. CLI vs. Skill,
+  MCP security (injection, tool poisoning, supply chain, least privilege)
+- Lab: read-only DB through MCP + a mini server, with a threat note
+- Deliverable: `.mcp.json`, call trace, mini-server code, threat note
+
+## Module 3 — Long-Term Agent Memory
+- Objectives: design and test an agent system's memory of the user and
+  the project
+- Key concepts: context vs. memory, kinds of memory, file memory
+  (`SOUL.md`, `USER.md`, `MEMORY.md`), layered memory systems
+  (TencentDB Agent Memory: L0–L3, hybrid BM25 + vector + RRF, ACL),
+  DIY SQLite FTS5 memory, write policy, memory poisoning and privacy,
+  memory tests
+- Lab: assistant memory files + three sessions + SQLite memory with tests
+- Deliverable: memory files, session log, code + tests, memory-policy note
+
+## Module 4 — Skills
+- Objectives: write, test and safely use reusable agent procedures
+- Key concepts: `SKILL.md` anatomy and frontmatter, progressive
+  disclosure, who invokes a skill, locations, arguments and dynamic
+  context, scripts, `context: fork`, skill vs. CLAUDE.md/hook/MCP/subagent,
+  the Agent Skills open standard, security, evals
+- Lab: package a course procedure as a skill and test it against a baseline
+- Deliverable: skill folder, 10-prompt result table, security note
+
+## Module 5 — Prompting & Task Specification for Agents
 - Objectives: write task descriptions that reduce agent guesswork
 - Key concepts: context vs. instructions, acceptance criteria, constraints,
   common anti-patterns (vague asks, missing "done" definition)
@@ -26,7 +56,7 @@ files in both languages.
   → fully specified) and diff the agent's output for each
 - Deliverable: 3 prompts + 3 diffs + comparison notes
 
-## Module 3 — Document-Driven Development (DDD)
+## Module 6 — Document-Driven Development (DDD)
 - Objectives: use a written spec as the contract an agent implements
   against, and keep it a living artifact
 - Key concepts: PRD/spec anatomy (goals, non-goals, interfaces, edge
@@ -37,7 +67,7 @@ files in both languages.
 - Deliverable: spec doc + resulting diff + list of places the spec had to
   be corrected mid-implementation
 
-## Module 4 — Deterministic Design Systems for AI-Generated UI
+## Module 7 — Deterministic Design Systems for AI-Generated UI
 - Objectives: get visually consistent, reproducible UI output across
   independent agent sessions instead of drift from vague adjectives
 - Key concepts: design tokens as concrete values (not prose), a design
@@ -51,7 +81,7 @@ files in both languages.
   from all three sessions + a writeup of where consistency held and where
   it broke down
 
-## Module 5 — Plan-First Workflows
+## Module 8 — Plan-First Workflows
 - Objectives: separate planning from execution so scope is agreed before
   code changes
 - Key concepts: plan mode / approval gates, Architecture Decision Records
@@ -62,7 +92,7 @@ files in both languages.
 - Deliverable: approved plan + resulting diff; note any plan/execution
   divergence
 
-## Module 6 — Test-Driven Development with Agents
+## Module 9 — Test-Driven Development with Agents
 - Objectives: use tests as an executable spec for an agent
 - Key concepts: red/green/refactor with an agent driving, example-based vs.
   property-based tests, why failing tests reduce agent hallucination
@@ -70,16 +100,16 @@ files in both languages.
   test first, then fix
 - Deliverable: failing test commit + fix commit, kept separate
 
-## Module 7 — Conversational / Iterative Development
+## Module 10 — Conversational / Iterative Development
 - Objectives: run a tight feedback loop for exploratory or small tasks
   without upfront documentation
 - Key concepts: incremental correction, detecting and recovering from
   agent drift, session/context management on long conversations
-- Lab: build the same small feature from Module 3 purely conversationally,
+- Lab: build the same small feature from Module 6 purely conversationally,
   no spec doc; compare effort and output quality
-- Deliverable: side-by-side comparison vs. the Module 3 result
+- Deliverable: side-by-side comparison vs. the Module 6 result
 
-## Module 8 — Multi-Agent Orchestration
+## Module 11 — Multi-Agent Orchestration
 - Objectives: compose more than one agent role on a single task
 - Key concepts: implementer/reviewer split, orchestrator/worker fan-out,
   critic-executor loops, when parallelism helps vs. adds coordination cost
@@ -88,7 +118,7 @@ files in both languages.
 - Deliverable: pipeline transcript + list of issues the reviewer agent
   caught that the implementer missed
 
-## Module 9 — Verification & Review of Agent Output
+## Module 12 — Verification & Review of Agent Output
 - Objectives: build the habit of verifying before trusting
 - Key concepts: hallucinated APIs, silent scope creep, security review for
   AI-written code, prompt-injection risk from untrusted content the agent
@@ -97,7 +127,7 @@ files in both languages.
   produced in an earlier module's lab
 - Deliverable: review checklist filled out + findings
 
-## Module 10 — CI/CD & Automating Agent Workflows
+## Module 13 — CI/CD & Automating Agent Workflows
 - Objectives: let agents participate in pipelines safely
 - Key concepts: hooks, scheduled/triggered agents, agents-in-CI (auto-fix
   lint, triage issues), permission scopes and sandboxing, human-in-the-loop
@@ -107,7 +137,7 @@ files in both languages.
 - Deliverable: working pipeline config + a written note on what it's
   *not* allowed to do unattended and why
 
-## Module 11 — Governance, Safety & Team Adoption
+## Module 14 — Governance, Safety & Team Adoption
 - Objectives: decide, as a team, when to require which methodology
 - Key concepts: disclosure norms for AI-assisted commits, review
   requirements, a decision framework (task type → methodology), measuring
@@ -116,7 +146,7 @@ files in both languages.
   methodology comparison matrix
 - Deliverable: team policy doc
 
-## Module 12 — Capstone
+## Module 15 — Capstone
 - Objectives: combine methodologies deliberately on one real feature
 - Format: pick a spec-worthy feature; use DDD for the spec, plan-first for
   the approach, TDD for the core logic, and a reviewer agent before
@@ -126,7 +156,7 @@ files in both languages.
 
 ---
 
-## Appendix: Methodology Comparison (to build out in Module 11)
+## Appendix: Methodology Comparison (to build out in Module 14)
 
 | Methodology | Best for | Weak for | Artifact left behind |
 |---|---|---|---|

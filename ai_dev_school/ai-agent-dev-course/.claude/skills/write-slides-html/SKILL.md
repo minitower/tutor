@@ -23,7 +23,7 @@ hand-authored interactive deck, always in Russian, styled by
 is about `slides.html` only.
 
 **`slides.html` never gets mirrored into the `.md` files, and the `.md`
-files never carry visuals.** Confirmed by modules 01–03: the SVGs,
+files never carry visuals.** Confirmed by modules 01–06: the SVGs,
 comparison cards, and taxonomy grids added to `slides.html` have no
 counterpart in `slides.ru.md`. Don't "keep them in sync" — that's not
 how this repo works. If a user wants the actual *text content* of a
@@ -115,7 +115,7 @@ divider slide pointing at the next module. `deck.js` needs nothing else
 Don't force content into `quote` just because a slide *feels* important —
 it only works for a single short line. If you need bullets or a card
 grid alongside the quote, append them below the `<p class="cite">` (see
-module 02 slide 5 for a working example) rather than switching layouts.
+module 05 slide 5 for a working example) rather than switching layouts.
 
 ## The component vocabulary
 
@@ -152,7 +152,7 @@ like):
 - **`<table>`** — plain comparison tables, already themed.
 
 There is no pre-built "problem + mitigation" component. The pattern used
-in module 03 (a small green-bordered sub-block nested inside a `.card
+in module 06 (a small green-bordered sub-block nested inside a `.card
 .before`) is inline-styled, not a class, because it's only used twice so
 far. If a fourth slide needs it, promote it to a real `.mitigation` class
 in `deck.css` instead of copy-pasting the inline style a fourth time —
@@ -162,7 +162,7 @@ see `references/components.md` for the exact style block to lift out.
 
 Module 01 established a small icon vocabulary (user, agent/robot,
 document, checkmark, danger/terminal, file tree, N-node loop) that
-modules 02–03 have been reusing rather than redrawing. Pull the actual
+modules 05–06 have been reusing rather than redrawing. Pull the actual
 markup from `references/icons.md` — don't redraw an agent robot from
 scratch, copy the existing path data and restyle the color if needed.
 

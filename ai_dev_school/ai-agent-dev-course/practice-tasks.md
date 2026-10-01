@@ -179,7 +179,7 @@ Using the skill and plugin from §2–3:
 
 **Deliverable:** the doc diff (before/after) and the list of gaps found
 in the cold-read test. This is the same "spec that survives contact with
-an agent that didn't write it" discipline as Module 3's DDD lab, applied
+an agent that didn't write it" discipline as Module 6's DDD lab, applied
 to the tool's own configuration instead of a feature spec.
 
 ---
@@ -187,9 +187,9 @@ to the tool's own configuration instead of a feature spec.
 ## Wrap-up
 
 These four practice tasks can stand alone or slot into the existing
-course as an added module (e.g. between Module 4, Deterministic Design
-Systems, and Module 5, Plan-First Workflows, since Skills/plugins are
+course as an added module (e.g. between Module 7, Deterministic Design
+Systems, and Module 8, Plan-First Workflows, since Skills/plugins are
 themselves a form of document-driven agent direction — a skill *is* a
 spec the agent reads before acting). Suggest folding this in as
-**Module 4.5 — Tooling Craft: Skills, Plugins, and Their Docs** if the
+**Module 7.5 — Tooling Craft: Skills, Plugins, and Their Docs** if the
 course runs as a cohort; as standalone practice otherwise.

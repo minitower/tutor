@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 2 — MCP</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 2</p>
+  <h1>MCP</h1>
+  <h2>Model Context Protocol: руки агента</h2>
+  <p class="course">Agentic Software Development: From Specs to Shipped Code</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Какую проблему решает MCP и как он устроен</li>
+    <li>Примитивы протокола, транспорты, формат вызова</li>
+    <li>Практика: база данных, открытые серверы, свой сервер</li>
+    <li>MCP или CLI или Skill — как выбирать</li>
+    <li>Безопасность MCP и работа в агентной системе</li>
+    <li>Лабораторная: read-only БД через MCP + мини-сервер</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели модуля</h2>
+  <p>К концу модуля вы сможете:</p>
+  <ol>
+    <li>Объяснить, какую проблему решает MCP, и описать host / client / server</li>
+    <li>Назвать три примитива и два транспорта, прочитать <code>.mcp.json</code></li>
+    <li>Безопасно подключить готовый сервер (БД) и написать простой свой</li>
+    <li>Оценить сервер по чек-листу безопасности и выбрать между MCP, CLI и Skill</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Проблема: N × M интеграций</h2>
+  <div class="svg-scene">
+<svg viewBox="0 0 900 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="N×M интеграций против N+M через MCP">
+<style>.a{font:700 13px var(--font,sans-serif);fill:var(--fg);text-anchor:middle}.b{font:700 15px var(--font,sans-serif);text-anchor:middle}.c{font:12px var(--font,sans-serif);fill:var(--fg-dim);text-anchor:middle}</style>
+<text class="b" x="180" y="18" style="fill:var(--danger)">Без протокола: N × M</text>
+<text class="b" x="680" y="18" style="fill:var(--accent-2)">С MCP: N + M</text>
+<g stroke="var(--fg-dim)" stroke-width="1.4" opacity=".55">
+<line x1="110" y1="70" x2="250" y2="70"/><line x1="110" y1="70" x2="250" y2="150"/><line x1="110" y1="70" x2="250" y2="230"/>
+<line x1="110" y1="150" x2="250" y2="70"/><line x1="110" y1="150" x2="250" y2="150"/><line x1="110" y1="150" x2="250" y2="230"/>
+<line x1="110" y1="230" x2="250" y2="70"/><line x1="110" y1="230" x2="250" y2="150"/><line x1="110" y1="230" x2="250" y2="230"/>
+</g>
+<g stroke="var(--fg-dim)" stroke-width="2" opacity=".8">
+<line x1="570" y1="70" x2="640" y2="135"/><line x1="570" y1="150" x2="640" y2="150"/><line x1="570" y1="230" x2="640" y2="165"/>
+<line x1="700" y1="135" x2="790" y2="70"/><line x1="700" y1="150" x2="790" y2="150"/><line x1="700" y1="165" x2="790" y2="230"/>
+</g>
+<g fill="var(--bg-2)" stroke-width="2.5">
+<rect x="10" y="50" width="100" height="40" rx="8" stroke="var(--accent)"/><rect x="10" y="130" width="100" height="40" rx="8" stroke="var(--accent)"/><rect x="10" y="210" width="100" height="40" rx="8" stroke="var(--accent)"/>
+<rect x="250" y="50" width="100" height="40" rx="8" stroke="var(--accent-2)"/><rect x="250" y="130" width="100" height="40" rx="8" stroke="var(--accent-2)"/><rect x="250" y="210" width="100" height="40" rx="8" stroke="var(--accent-2)"/>
+<rect x="470" y="50" width="100" height="40" rx="8" stroke="var(--accent)"/><rect x="470" y="130" width="100" height="40" rx="8" stroke="var(--accent)"/><rect x="470" y="210" width="100" height="40" rx="8" stroke="var(--accent)"/>
+<rect x="640" y="60" width="60" height="180" rx="12" stroke="var(--accent-3)"/>
+<rect x="790" y="50" width="100" height="40" rx="8" stroke="var(--accent)" style="stroke:var(--accent-2)"/><rect x="790" y="130" width="100" height="40" rx="8" style="stroke:var(--accent-2)"/><rect x="790" y="210" width="100" height="40" rx="8" style="stroke:var(--accent-2)"/>
+</g>
+<text class="a" x="60" y="75">Claude Code</text><text class="a" x="60" y="155">IDE</text><text class="a" x="60" y="235">Свой агент</text>
+<text class="a" x="300" y="75">БД</text><text class="a" x="300" y="155">GitHub</text><text class="a" x="300" y="235">Sentry</text>
+<text class="a" x="520" y="75">Claude Code</text><text class="a" x="520" y="155">IDE</text><text class="a" x="520" y="235">Свой агент</text>
+<text class="b" x="670" y="155" style="fill:var(--accent-3)">MCP</text>
+<text class="a" x="840" y="75">БД</text><text class="a" x="840" y="155">GitHub</text><text class="a" x="840" y="235">Sentry</text>
+<text class="c" x="180" y="266">каждая пара — своя интеграция</text><text class="c" x="680" y="266">один клиент и один сервер на систему</text>
+</svg>
+  </div>
+  <ul>
+    <li>Каждому агенту нужен доступ к БД, трекеру, мониторингу, браузеру…</li>
+    <li>Без стандарта каждая пара «агент × система» — отдельная интеграция</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Что такое MCP</h2>
+  <ul>
+    <li><strong>Model Context Protocol</strong> — открытый протокол, который стандартизирует, как LLM-приложение получает контекст и инструменты из внешних систем</li>
+    <li>Сообщения — <strong>JSON-RPC 2.0</strong></li>
+    <li>Идея заимствована у Language Server Protocol: один стандарт вместо интеграции каждого редактора с каждым языком</li>
+    <li>Три роли: <strong>host</strong> (приложение с LLM), <strong>client</strong> (коннектор внутри host), <strong>server</strong> (даёт контекст и возможности)</li>
+  </ul>
+  <blockquote>Слой доступа к системам — отдельно от модели и от агента.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Архитектура и транспорты</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Host</span><span class="flow-desc">Claude Code, IDE, ваш агент</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Client</span><span class="flow-desc">по одному на сервер</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Server</span><span class="flow-desc">БД, GitHub, файлы…</span></div>
+  </div>
+  <table>
+    <tr><th>Транспорт</th><th>Как работает</th><th>Когда</th></tr>
+    <tr><td><strong>stdio</strong></td><td>сервер — дочерний процесс, JSON построчно через stdin/stdout</td><td>локальные инструменты</td></tr>
+    <tr><td><strong>Streamable HTTP</strong></td><td>каждое сообщение — HTTP POST, ответ JSON или SSE-поток</td><td>удалённые и облачные серверы, OAuth</td></tr>
+  </table>
+  <p>Старый SSE-транспорт считается устаревшим. Свежая ревизия спецификации сделала запросы самодостаточными (без сессии <code>initialize</code>); клиенты и серверы поддерживают откат к старым версиям.</p>
+</section>
+
+<section class="slide">
+  <h2>Что может дать сервер: три примитива</h2>
+  <div class="trio">
+    <div class="card"><h4>Tools</h4><p>Функции, которые вызывает <strong>модель</strong>: запрос к БД, создание issue, поиск. Главный примитив для агентов</p></div>
+    <div class="card"><h4>Resources</h4><p>Данные и контекст — файлы, схемы, записи — которые читает пользователь или модель</p></div>
+    <div class="card"><h4>Prompts</h4><p>Шаблонные сообщения и сценарии, которые запускает <strong>пользователь</strong> (в Claude Code это слэш-команды)</p></div>
+  </div>
+  <p>Со стороны клиента: <strong>elicitation</strong> — сервер просит у пользователя недостающую информацию. Опциональные расширения: Tasks (долгие операции), MCP Apps (интерактивный UI), Skills over MCP.</p>
+</section>
+
+<section class="slide">
+  <h2>Как выглядит вызов инструмента</h2>
+  <pre><code style="font-size:.82rem; line-height:1.32;">→ {"jsonrpc":"2.0","id":7,"method":"tools/list"}
+← {"result":{"tools":[{"name":"query","description":"Run a read-only SQL query",
+     "inputSchema":{"type":"object","properties":{"sql":{"type":"string"}},"required":["sql"]}}]}}
+
+→ {"jsonrpc":"2.0","id":8,"method":"tools/call",
+   "params":{"name":"query","arguments":{"sql":"SELECT count(*) FROM users"}}}
+← {"result":{"content":[{"type":"text","text":"count\n42"}]}}</code></pre>
+  <ul>
+    <li>Модель видит <strong>имя, описание и JSON-схему</strong> аргументов — по ним она решает, вызывать ли инструмент</li>
+    <li>Пример упрощён: служебные поля <code>_meta</code> и рукопожатие опущены</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Подключение в Claude Code</h2>
+  <pre><code style="font-size:.82rem; line-height:1.32;"># локальный stdio-сервер (после -- идёт команда запуска)
+claude mcp add --transport stdio db -- npx -y @bytebase/dbhub --dsn "$DB_READONLY_DSN"
+# удалённый HTTP-сервер; OAuth: затем /mcp -&gt; войти в браузере
+claude mcp add --transport http sentry https://mcp.sentry.dev/mcp
+claude mcp list           # Connected / Needs authentication / Failed
+claude mcp get sentry ; claude mcp remove sentry</code></pre>
+  <table style="font-size:.9em;">
+    <tr><th>Scope</th><th>Где хранится</th><th>Для чего</th></tr>
+    <tr><td>local</td><td><code>~/.claude.json</code></td><td>личные серверы и креды этого проекта</td></tr>
+    <tr><td>project</td><td><code>.mcp.json</code> в корне</td><td>общие серверы команды — через git</td></tr>
+    <tr><td>user</td><td><code>~/.claude.json</code></td><td>ваши утилиты во всех проектах</td></tr>
+  </table>
+  <p>Инструменты называются <code>mcp__&lt;сервер&gt;__&lt;инструмент&gt;</code> — по этим именам пишутся правила прав, хуки и <code>allowed-tools</code>.</p>
+</section>
+
+<section class="slide">
+  <h2>Пример 1: база данных через MCP</h2>
+  <pre><code style="font-size:.85rem; line-height:1.32;">{ "mcpServers": { "db": {
+    "type": "stdio", "command": "npx",
+    "args": ["-y", "@bytebase/dbhub", "--dsn", "${DB_READONLY_DSN}"] } } }</code></pre>
+  <ul>
+    <li>Агент читает схему, сам пишет и запускает запросы, анализирует результат</li>
+    <li><strong>Правило №1: read-only роль БД</strong>, лучше реплика или staging — не prod с правом записи</li>
+    <li>DSN — в переменной окружения (<code>${VAR}</code> поддерживается), а не в git</li>
+    <li>Лимиты на стороне БД: <code>statement_timeout</code>, ограничение строк</li>
+    <li>Референс-серверы PostgreSQL и SQLite архивированы — берите поддерживаемые (DBHub, серверы вендоров вроде Supabase или Neon)</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Пример 2: открытые MCP-серверы</h2>
+  <table style="font-size:.8em;">
+    <tr><th>Сервер</th><th>Что даёт</th><th>Подключение</th></tr>
+    <tr><td><strong>Filesystem</strong> (reference)</td><td>операции с файлами в разрешённых каталогах</td><td><code>npx -y @modelcontextprotocol/server-filesystem &lt;dir&gt;</code></td></tr>
+    <tr><td><strong>Git</strong> (reference)</td><td>чтение, поиск, операции с репозиторием</td><td><code>uvx mcp-server-git</code></td></tr>
+    <tr><td><strong>Fetch</strong> (reference)</td><td>страница → markdown (внимание: injection!)</td><td><code>uvx mcp-server-fetch</code></td></tr>
+    <tr><td><strong>Memory</strong> (reference)</td><td>граф знаний как постоянная память — модуль 3</td><td><code>npx -y @modelcontextprotocol/server-memory</code></td></tr>
+    <tr><td><strong>GitHub</strong></td><td>issues, PR, репозитории</td><td>remote: <code>https://api.githubcopilot.com/mcp/</code> + токен</td></tr>
+    <tr><td><strong>Sentry</strong>, <strong>Notion</strong>, <strong>Stripe</strong></td><td>вендорские remote-серверы с OAuth</td><td><code>https://mcp.sentry.dev/mcp</code> и др.</td></tr>
+    <tr><td><strong>Playwright</strong> (Microsoft)</td><td>управление браузером для проверки UI</td><td><code>npx @playwright/mcp@latest</code> (сверьтесь с README)</td></tr>
+  </table>
+  <p>Каталог опубликованных серверов — MCP Registry (<code>registry.modelcontextprotocol.io</code>). Серверы GitHub, GitLab, Slack, Puppeteer из референс-репозитория архивированы.</p>
+</section>
+
+<section class="slide">
+  <h2>Свой MCP-сервер за 10 строк</h2>
+  <pre><code style="font-size:.85rem; line-height:1.32;"># server.py     pip install mcp
+from mcp.server.mcpserver import MCPServer   # в mcp 1.x: from mcp.server.fastmcp import FastMCP
+
+mcp = MCPServer("tickets")
+
+@mcp.tool()
+def count_open(project: str) -&gt; int:
+    """Сколько открытых тикетов в проекте (только чтение)."""
+    return db_count(project)        # ваша реализация
+
+if __name__ == "__main__":
+    mcp.run()                       # stdio по умолчанию</code></pre>
+  <ul>
+    <li>Подключение: <code>claude mcp add --transport stdio tickets -- python server.py</code></li>
+    <li>Отладка без агента: <code>npx @modelcontextprotocol/inspector python server.py</code></li>
+    <li>Docstring и типы — это то, что видит модель. Мало узких инструментов лучше, чем много общих; ответы — короткие</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>MCP, CLI или Skill: что выбрать</h2>
+  <table style="font-size:.88em;">
+    <tr><th>Ситуация</th><th>Выбор</th><th>Почему</th></tr>
+    <tr><td>Инструмент уже есть в терминале и агент его знает (<code>git</code>, <code>gh</code>, <code>psql</code>)</td><td>CLI</td><td>нет затрат контекста на описания, меньше частей</td></tr>
+    <tr><td>Внешний сервис с OAuth, типизированные ответы, несколько клиентов</td><td><strong>MCP</strong></td><td>стандартная авторизация и схема, один сервер для всех</td></tr>
+    <tr><td>Повторяемая процедура, чек-лист, «как у нас принято»</td><td>Skill</td><td>модуль 4</td></tr>
+    <tr><td>Правило, которое должно выполняться всегда</td><td>Hook</td><td>модуль 13</td></tr>
+  </table>
+  <p>Описания MCP-инструментов занимают контекст. Claude Code по умолчанию подгружает инструменты по требованию (tool search) — но лишние серверы всё равно отключайте.</p>
+</section>
+
+<section class="slide">
+  <h2>Безопасность MCP: угрозы</h2>
+  <ul>
+    <li><strong>Prompt injection через результаты инструментов</strong> — страница, тикет, строка в БД содержат «инструкцию» (модуль 12)</li>
+    <li><strong>Tool poisoning</strong> — вредоносное описание инструмента; по спецификации описания недоверенны, пока сервер не доверенный</li>
+    <li><strong>Rug pull и supply chain</strong> — сервер изменил инструменты после одобрения; <code>npx -y</code> без пина версии</li>
+    <li><strong>Избыточные права</strong> — токен с write/admin там, где нужно чтение</li>
+    <li><strong>Утечки</strong> — секреты в аргументах и логах; удалённый сервер видит всё, что вы ему отправили</li>
+  </ul>
+  <blockquote>Инструмент MCP — это выполнение произвольного кода. Согласие пользователя обязательно.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Безопасность MCP: контроли</h2>
+  <pre><code style="font-size:.9rem; line-height:1.32;">{ "permissions": {
+    "allow": ["mcp__db__query"],
+    "deny":  ["mcp__db__execute"] } }</code></pre>
+  <ul>
+    <li><strong>Наименьшие права</strong>: read-only креды, минимальные OAuth-scope, allow-список инструментов</li>
+    <li><strong>Пин версий</strong> (<code>@bytebase/dbhub@X.Y.Z</code>) и просмотр кода сервера до подключения</li>
+    <li><strong>Хук-аудит</strong>: <code>PreToolUse</code> с matcher <code>mcp__.*</code> пишет каждый вызов в лог</li>
+    <li>Project-серверы из <code>.mcp.json</code> требуют одобрения — не жмите «да» не глядя</li>
+    <li>Песочница и ограничение исходящей сети для серверов с доступом в интернет</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>MCP в агентной системе и в CI</h2>
+  <ul>
+    <li><code>stdio</code>-сервер в <code>.mcp.json</code> — это <strong>команда, которая запускается на вашей машине</strong>. Конфиг из чужого PR — недоверенный код (модуль 13, форки)</li>
+    <li>В CI перечисляйте разрешённые инструменты явно: <code>--allowedTools "mcp__db__query"</code>; креды — секреты CI, только чтение</li>
+    <li>В системе из нескольких агентов у каждой роли — <strong>свой набор серверов</strong>: planner читает, implementer пишет в свою ветку, reviewer только комментирует</li>
+    <li>MCP — удобная граница для политики: права, аудит и лимиты живут на сервере, а не в промпте</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная — БД через MCP</h2>
+  <ol>
+    <li>Поднимите тестовую БД (SQLite или Postgres в Docker) с read-only пользователем и подключите её через MCP в <code>.mcp.json</code></li>
+    <li>Задайте агенту три аналитических вопроса; сохраните трассу вызовов инструментов</li>
+    <li>Попросите выполнить <code>UPDATE</code>/<code>DROP</code> и покажите, что запись заблокирована (правами БД и <code>deny</code>)</li>
+    <li>Напишите свой мини-сервер с одним инструментом и проверьте его в Inspector</li>
+    <li>Заполните заметку об угрозах: пять строк по слайду 14 и контрмера к каждой</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li><code>.mcp.json</code> (без секретов), рабочий read-only доступ к БД</li>
+    <li>Трасса вызовов и подтверждение, что запись заблокирована</li>
+    <li>Код мини-сервера + скриншот/лог Inspector</li>
+    <li>Заметка об угрозах с контрмерами</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 3</p>
+  <h2>Далее: долгосрочная память агента</h2>
+  <p>MCP даёт агенту руки: доступ к системам через один протокол. Но права, аудит и границы — по-прежнему ваша работа: сервер — это код, а его вывод — недоверенный текст.</p>
+  <p>Агенту также нужна память о вас и проекте.</p>
+</section>
+
+</main>
+
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

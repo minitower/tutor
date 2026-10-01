@@ -1,11 +1,11 @@
 # Worked Example: Building One Feature With the Whole Toolkit
 
-A single, illustrative walkthrough showing Modules 3, 4, 5, 6, and 9
+A single, illustrative walkthrough showing Modules 6, 7, 8, 9, and 12
 used together on one real-shaped feature, start to finish. This is
 written dialogue/output for teaching purposes — not a captured
 transcript — but it's representative of what each step actually looks
 like in practice. Use it as reference material for the Capstone
-(Module 12), or read it before Module 3 to see where all the pieces
+(Module 15), or read it before Module 6 to see where all the pieces
 land before doing them yourself.
 
 **The feature:** *Add a "Export to CSV" button to the reports dashboard,
@@ -15,7 +15,7 @@ case worth testing.
 
 ---
 
-## Step 1 — Write the spec (Module 3, DDD)
+## Step 1 — Write the spec (Module 6, DDD)
 
 ```markdown
 # Spec: CSV Export for Reports Dashboard
@@ -63,9 +63,9 @@ behavior.
 
 ---
 
-## Step 2 — Check the design system (Module 4)
+## Step 2 — Check the design system (Module 7)
 
-Before anything gets built, the repo's `CLAUDE.md` rule from Module 4
+Before anything gets built, the repo's `CLAUDE.md` rule from Module 7
 kicks in automatically:
 
 > Before any UI/styling work, read `design/tokens.css` and
@@ -76,11 +76,11 @@ So the new button uses the existing `--color-accent` / `--space-unit`
 tokens rather than the agent picking its own shade of blue. Nothing to
 do here except confirm it happened — check the diff for any new raw hex
 values. (If this were a bigger UI addition, this step would get its own
-tokens-file check in the lab, same as Module 4's exercise.)
+tokens-file check in the lab, same as Module 7's exercise.)
 
 ---
 
-## Step 3 — Plan before building (Module 5)
+## Step 3 — Plan before building (Module 8)
 
 The spec goes in as the task; plan mode is used because this touches
 both frontend (button, download trigger) and backend (query filtering,
@@ -108,7 +108,7 @@ proposed, including the disabled-button call.
 
 ---
 
-## Step 4 — TDD the core logic (Module 6)
+## Step 4 — TDD the core logic (Module 9)
 
 The risky part isn't the button — it's the CSV serialization and the
 date-range edge cases from the spec. Test-first, starting with the
@@ -137,7 +137,7 @@ mismatch a written acceptance criterion catches before it ships.
 
 ---
 
-## Step 5 — Second-agent review (Module 9 / Module 8's pattern)
+## Step 5 — Second-agent review (Module 12 / Module 11's pattern)
 
 A fresh session, given only the diff and the original spec — no access
 to the first session's reasoning:
@@ -152,7 +152,7 @@ to the first session's reasoning:
 >   the rest of `/api/reports/*` — worth confirming that's intentional.
 
 Both are real, useful catches — the first is a direct spec-vs-tests gap
-(exactly the kind of thing Module 9's lab is built to practice finding),
+(exactly the kind of thing Module 12's lab is built to practice finding),
 the second is a scope question the implementer wouldn't have thought to
 flag about its own work.
 
@@ -160,7 +160,7 @@ flag about its own work.
 
 ## Step 6 — Close the loop: update the spec
 
-Per Module 3's discipline, the spec gets one addition once the missing
+Per Module 6's discipline, the spec gets one addition once the missing
 test was added and the rate-limiting question was resolved (it was
 intentional — exports are less frequent than list views, existing limits
 were too aggressive):
@@ -196,5 +196,5 @@ Each module's technique caught something different:
   the implementer noticed on their own
 
 No single technique here would have caught everything. That's the
-argument for combining them deliberately (Module 12) rather than
+argument for combining them deliberately (Module 15) rather than
 defaulting to whichever one is most comfortable.

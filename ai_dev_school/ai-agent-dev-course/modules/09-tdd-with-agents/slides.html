@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 9 — TDD с агентами</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 9</p>
+  <h1>TDD с агентами</h1>
+  <h2>Тесты как спецификация</h2>
+  <p class="course">Agentic Software Development: From Specs to Shipped Code</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Почему тесты — спецификация лучше, чем текст, для агента</li>
+    <li>Red/green/refactor с агентом за рулём</li>
+    <li>Разбор примера: баг-репорт → падающий тест → исправление</li>
+    <li>Связь с DDD: спецификация → тест-кейсы → код; как найти кейсы до первого падения</li>
+    <li>Тесты на примерах vs. property-based тесты (и откуда берётся генератор)</li>
+    <li>Почему падающие тесты снижают галлюцинации</li>
+    <li>Лабораторная: только баг-репорт, без подсказок</li>
+    <li>Результат и подведение итогов</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели занятия</h2>
+  <ul>
+    <li>Использовать тесты как исполняемую, недвусмысленную спецификацию для агента</li>
+    <li>Понимать, почему падающий тест, написанный <em>до</em> исправления, снижает галлюцинации агента</li>
+    <li>Знать, когда TDD с агентами — подходящий инструмент, а когда нет</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Почему TDD важен ещё больше с агентами</h2>
+  <ul>
+    <li>Для человека TDD — это в основном вопрос <strong>дисциплины</strong></li>
+    <li>Для агента это вопрос <strong>прицеливания</strong> — дать модели недвусмысленное определение «готово»</li>
+    <li>Текстовую спецификацию можно выполнить формально, упустив суть</li>
+  </ul>
+  <blockquote>У падающего теста есть ровно один законный способ стать зелёным.</blockquote>
+  <div class="svg-scene" style="margin:.4rem 0 0;">
+    <svg viewBox="0 0 560 160" style="max-width:520px;" xmlns="http://www.w3.org/2000/svg">
+      <rect x="40" y="35" width="70" height="58" rx="12" fill="var(--bg-2)" stroke="var(--accent-3)" stroke-width="3"/>
+      <line x1="75" y1="35" x2="75" y2="22" stroke="var(--accent-3)" stroke-width="3"/>
+      <circle cx="75" cy="18" r="5" fill="var(--accent-3)"/>
+      <circle cx="60" cy="62" r="5" fill="var(--accent-3)"/>
+      <circle cx="90" cy="62" r="5" fill="var(--accent-3)"/>
+      <text x="75" y="118" text-anchor="middle" font-weight="700" font-size="13" fill="var(--fg-dim)">Агент</text>
+      <line x1="125" y1="65" x2="255" y2="65" stroke="var(--fg-dim)" stroke-width="3"/>
+      <polygon points="255,58 271,65 255,72" fill="var(--fg-dim)"/>
+      <text x="190" y="52" text-anchor="middle" font-size="13" fill="var(--fg-dim)">целится в ✓</text>
+      <rect x="285" y="5" width="250" height="135" rx="8" fill="var(--bg-2)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="302" y="32" font-family="var(--mono,monospace)" font-size="13" font-weight="700" fill="var(--accent)">test_discount.py</text>
+      <g font-family="var(--mono,monospace)" font-size="13" fill="var(--fg)">
+        <path d="M302 60 l6 7 l13 -15" fill="none" stroke="var(--accent-2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="332" y="64">10 шт → скидка 10%</text>
+        <path d="M302 88 l6 7 l13 -15" fill="none" stroke="var(--accent-2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="332" y="92">9 шт → без скидки</text>
+        <path d="M302 116 l6 7 l13 -15" fill="none" stroke="var(--accent-2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="332" y="120">0 шт → сумма 0</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Краткое напоминание: Red / Green / Refactor</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--danger)"><span class="flow-label">Red</span><span class="flow-desc">тест на несуществующее поведение, убедиться, что падает</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Green</span><span class="flow-desc">минимум кода, чтобы тест прошёл</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Refactor</span><span class="flow-desc">навести порядок, тесты остаются зелёными</span></div>
+  </div>
+  <p class="flow-repeat">↻ повторять маленькими шагами</p>
+</section>
+
+<section class="slide">
+  <h2>Цикл с агентом за рулём</h2>
+  <ol>
+    <li>Агент пишет падающий тест</li>
+    <li><strong>Вы (или CI) подтверждаете, что он падает — и падает по правильной причине</strong></li>
+    <li>Агент реализует исправление</li>
+    <li>Агент (или вы) подтверждает, что весь набор тестов зелёный</li>
+    <li>Агент делает рефакторинг</li>
+    <li>Повторить</li>
+  </ol>
+  <p><em>Шаг 2 — тот самый, который пропускают люди, а агенты пропускают ещё чаще.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Связь с DDD: документ → тесты → код</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Спека</span><span class="flow-desc">цель, граничные случаи, критерии приёмки (Модуль 6)</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--danger)"><span class="flow-label">Red</span><span class="flow-desc">каждый критерий → падающий тест</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Green</span><span class="flow-desc">агент реализует, тесты зелёные</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Обновить спеку</span><span class="flow-desc">новый случай — в документ и в тест</span></div>
+  </div>
+  <p class="flow-repeat">↻ документ остаётся правдивым, пока тесты зелёные</p>
+  <blockquote>Спецификация говорит, что должно быть. Тест проверяет, что так и есть.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Как найти тест-кейсы до первого падения</h2>
+  <div class="trio">
+    <div class="card"><h4>Из спецификации</h4><p>Каждый критерий приёмки и каждый граничный случай — минимум один тест. Список кейсов уже написан в документе.</p></div>
+    <div class="card"><h4>Из границ</h4><p>N−1, N, N+1; ноль, пусто, максимум. Именно так ловится баг «ровно 10».</p></div>
+    <div class="card"><h4>Из вопроса агенту</h4><p>«Перечисли кейсы текстом, без кода». Вы вычёркиваете лишнее и добавляете пропущенное — до первого теста.</p></div>
+  </div>
+  <p><em>Баг-репорт — это один готовый кейс. Вопрос: какие соседние кейсы он не показал?</em></p>
+</section>
+
+<section class="slide">
+  <h2>Тесты для каждой новой фичи — прямо в документе</h2>
+  <pre><code>## Test cases   (пишутся до кода)
+- [x] 10 шт → скидка 10%      test_bulk_discount_applies_at_exactly_10_items
+- [x] 9 шт → без скидки       test_no_discount_at_9_items
+- [ ] 0 шт → сумма 0          test_zero_quantity
+- [ ] сумма ≤ полной цены     test_discount_never_exceeds_full_price</code></pre>
+  <ul>
+    <li>Раздел <code>Test cases</code> в спецификации фичи: строка в списке → тест → код</li>
+    <li>«Готово» = все чекбоксы закрыты, тесты зелёные, документ обновлён</li>
+    <li>Новый баг: сначала строка в списке, потом тест, потом исправление</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="quote">
+  <blockquote>«Клиенты жалуются: при покупке ровно 10 единиц оптовая скидка не применяется. При 11 единицах всё работает».</blockquote>
+  <p class="cite">Это весь баг-репорт, который получает агент — ни имён файлов, ни стектрейса, ни предполагаемой причины.</p>
+</section>
+
+<section class="slide">
+  <h2>Шаг 1 — Написать падающий тест</h2>
+  <pre><code>def test_bulk_discount_applies_at_exactly_10_items():
+    total = calculate_discount(quantity=10, unit_price=5.00)
+    assert total == 45.00  # 10 * 5.00 * 0.9</code></pre>
+  <ul>
+    <li>Превращает баг-репорт в одно конкретное, проверяемое утверждение</li>
+    <li>Запустить его сейчас — <em>до</em> того, как трогать код реализации</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Шаг 2 — Убедиться, что падает по правильной причине</h2>
+  <pre><code>AssertionError: 50.0 != 45.00</code></pre>
+  <ul>
+    <li><strong>Хорошее падение:</strong> математика скидки действительно неверна, ровно как в репорте</li>
+    <li><strong>Плохое падение (тревожный сигнал):</strong> <code>NameError</code>, <code>ImportError</code>, сломанная фикстура — неправильный <em>тест</em>, а не код</li>
+  </ul>
+  <p>Пропуск этой проверки — вот как агенты «чинят» опечатки и считают задачу выполненной.</p>
+</section>
+
+<section class="slide">
+  <h2>Шаг 3 — Реализовать исправление, убедиться в зелёном</h2>
+  <pre><code><span class="del">- if quantity > 10:</span>
+<span class="add">+ if quantity >= 10:</span>
+      total *= 0.9</code></pre>
+  <ul>
+    <li>Перезапустить новый тест → проходит</li>
+    <li>Перезапустить <strong>весь набор тестов</strong> → ничего больше не сломалось</li>
+    <li>Только после этого агент трогает что-то ещё</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Шаг 4 — Рефакторинг (шаг, который агенты пропускают)</h2>
+  <pre><code>BULK_DISCOUNT_THRESHOLD = 10
+BULK_DISCOUNT_RATE = 0.9
+
+if quantity >= BULK_DISCOUNT_THRESHOLD:
+    total *= BULK_DISCOUNT_RATE</code></pre>
+  <p>Зелёные тесты ощущаются агентом как «готово» — рефакторинг не требует ни один тест, поэтому попросить об этом должны вы. Зелёные тесты — это страховка <em>для</em> уборки кода, а не повод её пропустить.</p>
+</section>
+
+<section class="slide">
+  <h2>Тесты на примерах как спецификация</h2>
+  <pre><code>def test_bulk_discount_applies_at_exactly_10_items(): ...
+def test_no_discount_at_9_items(): ...
+def test_discount_on_a_large_order(): ...</code></pre>
+  <ul>
+    <li>Точные, читаемые, дёшево обходятся агенту в написании</li>
+    <li>Хороши ровно настолько, насколько хороши примеры, которые кто-то догадался написать</li>
+    <li>Агент с радостью напишет примеры, подтверждающие его <em>собственное</em> предположение о том, где проходит граница</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Property-based тесты как спецификация</h2>
+  <ul>
+    <li>Вместо конкретных входных данных формулируется <strong>инвариант</strong>, который должен выполняться для <em>всех</em> входов</li>
+    <li>Генератор создаёт сотни случаев — включая те, что никто не додумался написать вручную</li>
+    <li>Инвариант для этой функции: <em>итоговая сумма со скидкой никогда не превышает полную цену</em></li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Откуда берётся генератор</h2>
+  <pre><code>st.integers(0, 10_000)       # генератор целых: чаще берёт 0, 1, границы
+st.floats(0.01, 10_000)      # и «неудобные» дробные значения
+
+orders = st.builds(Order,    # составной объект — из простых генераторов
+    quantity=st.integers(0, 10_000),
+    unit_price=st.floats(0.01, 10_000))</code></pre>
+  <ul>
+    <li>Генератор (<em>strategy</em>) — описание пространства входов; библиотека сама сэмплирует его</li>
+    <li>Диапазоны берём из контракта в спецификации — агент не должен выдумывать их сам</li>
+    <li>При падении Hypothesis сжимает пример до минимального; закрепите его обычным тестом на примерах</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Разбор примера: property-based тест</h2>
+  <pre><code>from hypothesis import given, strategies as st
+
+@given(
+    quantity=st.integers(min_value=0, max_value=10_000),
+    unit_price=st.floats(min_value=0.01, max_value=10_000),
+)
+def test_discount_never_exceeds_full_price(quantity, unit_price):
+    assert calculate_discount(quantity, unit_price) &lt;= quantity * unit_price</code></pre>
+  <p>Отлавливает случаи, которых тесты на примерах никогда не касались: <code>quantity=0</code>, огромные заказы, округление float.</p>
+</section>
+
+<section class="slide">
+  <h2>Выбор подхода, когда за рулём агент</h2>
+  <table>
+    <tr><th></th><th>На примерах</th><th>Property-based</th></tr>
+    <tr><td>Лучше всего для</td><td>точного сценария из баг-репорта</td><td>покрытия границ и инвариантов</td></tr>
+    <tr><td>Агент пишет</td><td>быстро, прямо из репорта</td><td>нужен инвариант, сформулированный вами</td></tr>
+    <tr><td>Основной риск</td><td>узость — проверяет только то, что представили</td><td>расплывчатость при слабом инварианте</td></tr>
+  </table>
+  <p><em>Используйте тесты на примерах, чтобы воспроизвести баг; добавляйте property-based, чтобы проверить, что исправление действительно общее.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Почему падающие тесты снижают галлюцинации</h2>
+  <ul>
+    <li>Текстовый баг-репорт неоднозначен — агент заполняет пробелы догадкой, поданной как уверенность</li>
+    <li>Падающий тест — проверяемый контракт: исправление либо зелёное, либо нет — никакое убедительное объяснение это не заменит</li>
+    <li>Он заставляет агента <strong>запустить</strong> что-то, а не <strong>утверждать</strong>, что оно сработало</li>
+  </ul>
+  <div class="svg-scene" style="margin:.4rem 0 0;">
+    <svg viewBox="0 0 560 170" style="max-width:540px;" xmlns="http://www.w3.org/2000/svg">
+      <text x="150" y="16" text-anchor="middle" font-weight="700" font-size="13" fill="var(--fg-dim)">Без теста</text>
+      <text x="425" y="16" text-anchor="middle" font-weight="700" font-size="13" fill="var(--fg-dim)">С падающим тестом</text>
+      <line x1="290" y1="6" x2="290" y2="160" stroke="var(--border)" stroke-width="2" stroke-dasharray="4 6"/>
+      <rect x="20" y="52" width="52" height="44" rx="11" fill="var(--bg-2)" stroke="var(--accent-3)" stroke-width="3"/>
+      <line x1="46" y1="52" x2="46" y2="42" stroke="var(--accent-3)" stroke-width="3"/>
+      <circle cx="46" cy="38" r="4" fill="var(--accent-3)"/>
+      <circle cx="35" cy="74" r="4" fill="var(--accent-3)"/>
+      <circle cx="57" cy="74" r="4" fill="var(--accent-3)"/>
+      <text x="46" y="116" text-anchor="middle" font-weight="700" font-size="12" fill="var(--fg-dim)">Агент</text>
+      <rect x="92" y="36" width="182" height="66" rx="12" fill="var(--bg-2)" stroke="var(--accent-3)" stroke-width="2.5" stroke-dasharray="6 4"/>
+      <polygon points="92,66 80,74 92,82" fill="var(--bg-2)" stroke="var(--accent-3)" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="183" y="64" text-anchor="middle" font-size="14" fill="var(--fg)">«Исправил! Всё</text>
+      <text x="183" y="84" text-anchor="middle" font-size="14" fill="var(--fg)">работает и проверено»</text>
+      <text x="183" y="132" text-anchor="middle" font-size="13" font-weight="700" fill="var(--danger)">✗ ничего не запускал</text>
+      <rect x="315" y="30" width="220" height="86" rx="10" fill="var(--code-bg)" stroke="var(--border)" stroke-width="1.5"/>
+      <circle cx="331" cy="44" r="4" fill="#ff6b6b"/><circle cx="346" cy="44" r="4" fill="#ffd166"/><circle cx="361" cy="44" r="4" fill="#37e6b0"/>
+      <text x="331" y="78" font-family="var(--mono,monospace)" font-size="14" fill="var(--fg-dim)">$ pytest</text>
+      <text x="331" y="102" font-family="var(--mono,monospace)" font-size="14" font-weight="700" fill="var(--danger)">1 failed — не готово</text>
+      <text x="425" y="140" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-2)">✓ факт, а не заявление</text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Режим отказа: тест, который проходит по неправильной причине</h2>
+  <pre><code>def test_bulk_discount():
+    assert True  # "проверено вручную"</code></pre>
+  <p>Крайний пример, но паттерн реальный: избыточные моки, проверка константы, тестирование мока вместо кода.</p>
+  <blockquote>Решение: прочитать текст ошибки падающего теста, прежде чем доверять зелёному.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Где это сочетается хорошо — а где плохо</h2>
+  <div class="compare">
+    <div class="card after">
+      <h4>Хорошо</h4>
+      <p>Исправление багов, чётко определённая логика, чистые функции, парсеры, вычисления — «правильный» ответ уже известен</p>
+    </div>
+    <div class="card before">
+      <h4>Плохо</h4>
+      <p>Исследовательская работа над UI, задачи вида «чтобы ощущалось правильно» — вы бы писали проверки на ответ, которого ещё нет</p>
+    </div>
+  </div>
+  <p><em>TDD с агентами предполагает, что тест верен до того, как его написали — это реальное допущение, а не данность.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная: только баг-репорт</h2>
+  <p>Вы дадите агенту <strong>только</strong> баг-репорт — без имён файлов, без подсказок, без предполагаемой причины.</p>
+  <p>Обязательная последовательность:</p>
+  <ol>
+    <li>Написать тест, который воспроизводит баг и падает</li>
+    <li>Убедиться, что падение происходит по правильной причине</li>
+    <li>Реализовать исправление</li>
+    <li>Убедиться, что тест проходит и ничего другого не сломалось</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Разбор лабораторной — как выглядит «готово»</h2>
+  <ul>
+    <li>Два отдельных коммита: падающий тест, затем исправление — никогда не сквошить</li>
+    <li>Дифф коммита с падающим тестом не должен содержать <strong>никаких</strong> изменений в продакшн-коде</li>
+    <li>Перед merge: перечитать assertion — он действительно кодирует баг-репорт, или что-то лишь смежное с ним?</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Два коммита: падающий тест → исправление, раздельные в истории</li>
+    <li>Однострочная заметка: действительно ли первая попытка агента написать тест уловила баг, или потребовалась коррекция?</li>
+  </ul>
+  <blockquote>Эта заметка — настоящий сигнал: она показывает, насколько можно доверять следующему тесту агента без присмотра.</blockquote>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 10</p>
+  <h2>Далее: Conversational / Iterative Development</h2>
+  <p>Тесты как исполняемая спецификация закрывают агенту пространство для догадок. Red/green/refactor — «убедиться, что падает правильно» — это шаг, который на самом деле имеет значение.</p>
+  <p>Спецификация (Модуль 6) говорит, что проверять; тесты — её исполняемая версия.</p>
+  <p><em>Что происходит без документа заранее и вообще без тестов.</em></p>
+</section>
+
+</main>
+
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

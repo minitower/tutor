@@ -37,29 +37,49 @@ the course can enforce on its own.
   occasionally, especially once permissions relax — it's a good teaching
   moment either way ("look what it did that we didn't ask for").
 - **Frustration vs. productive struggle.** Some confusion is the point
-  (Module 9 exists because agents *do* get things wrong). Persistent
+  (Module 12 exists because agents *do* get things wrong). Persistent
   frustration where the teen has disengaged and is just accepting
   whatever the agent outputs is the moment to step back in.
 - **Anything touching the open internet.** If a task has the agent fetch
   a web page, read an external API, or post/send anything, that's a
   moment for you to be present — untrusted content the agent reads can
   contain text aimed at manipulating it, and this is covered directly in
-  Module 9, but the first few times are worth watching together.
+  Module 12, but the first few times are worth watching together.
 
 ## What not to worry about
 
 - Making mistakes in the code itself. That's normal and expected — this
   isn't a course about writing perfect code, it's about directing a tool
   well. Bugs are a feature of the learning process, not a failure.
-- The teen "just copying what the agent says" early on. Module 1–2 build
+- The teen "just copying what the agent says" early on. Module 1–5 build
   toward understanding; it's fine if the first session or two is mostly
   watching and getting oriented.
 
 ## A note on trust, not restriction, as the goal
 
 The permission settings above are a starting point, not a permanent
-cage. Part of what this course teaches (Module 9, Module 11) is how to
+cage. Part of what this course teaches (Module 12, Module 14) is how to
 reason about *when* more autonomy is appropriate — the goal is a teen who
 can eventually make that call themselves, the same way a driving
 curriculum starts supervised and ends with an independent driver who
 understands *why* the rules existed in the first place.
+
+## Modules 2–4 (MCP, memory, skills): extra notes
+
+- **Module 2 (MCP) is an elevated-attention module.** An MCP server is a
+  program that runs on the teen's computer, and what it returns is
+  untrusted text. Connect only servers the teen wrote or that you both
+  read (the official reference examples). Read-only access, test data
+  only; no tokens or passwords from personal accounts; never paste an
+  `npx -y ...` command from a random page.
+- **Module 3 (memory):** memory files are data. Review them before any
+  commit or publish: no real names, addresses, school, phone numbers,
+  passwords, or other people's personal data (especially other minors, if
+  a bot has users). The teen should be able to view, edit and delete any
+  memory entry. Treat memory systems that store data on a server as any
+  other service holding personal data.
+- **Module 4 (skills):** a skill can run commands. Keep the teen's skills
+  to safe actions inside the project folder (no publishing, sending or
+  deleting), require manual invocation for anything with a side effect,
+  and read skills from the internet together — especially `allowed-tools`
+  — before installing them.

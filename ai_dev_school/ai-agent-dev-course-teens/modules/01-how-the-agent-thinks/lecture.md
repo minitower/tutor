@@ -228,11 +228,7 @@ it acts."
 
 ## Slide 17 — Next Up
 
-"Next time, Module 2. You've spent today learning to watch the loop
-from the outside. Next we start working on what actually goes *into*
-it — the instructions you give it in the first place, and how the
-quality of those instructions changes everything you just watched
-happen today."
+"Next time, Module 2. You've spent today learning to watch the loop from the outside. Next we look at how the agent reaches beyond your project folder — plugging in outside tools and data safely — and after that, how it remembers you and learns reusable moves."
 
 ---
 

@@ -127,7 +127,7 @@ viewBox with other elements):
 ## N-node circular/diamond loop (ReAct-style cycle)
 
 The animated-dot loop used for the agent cycle (module 01) and the DDD
-read/plan/implement/update cycle (module 03). Works for 3 nodes (triangle
+read/plan/implement/update cycle (module 06). Works for 3 nodes (triangle
 path) or 4 (diamond path, shown here) — just change the node count,
 positions, and the `path=` in `animateMotion`.
 

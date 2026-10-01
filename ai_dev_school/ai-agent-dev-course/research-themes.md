@@ -1,7 +1,7 @@
 # Further Themes: Agent System Development
 
 The course so far teaches how to **direct** an agent as a developer
-(Modules 1–11). This is a different layer: themes worth investigating
+(Modules 1–14). This is a different layer: themes worth investigating
 about how agent *systems* themselves are designed and built — relevant
 if the course should grow a second track for people building agents and
 agent tooling, not just people using them to write code.
@@ -18,7 +18,7 @@ What actually goes into the context window, and in what order/format.
   what, and the cost of getting it wrong (irrelevant context degrades
   output, not just wastes tokens)
 - Context compaction/summarization: what's safe to lose, what must
-  survive as a durable artifact instead (ties back to Module 3's DDD
+  survive as a durable artifact instead (ties back to Module 6's DDD
   argument — files outlive context windows)
 - Structuring long-lived project knowledge (`CLAUDE.md`/`AGENTS.md`-style
   files) as a design problem, not just a doc-writing exercise
@@ -53,12 +53,12 @@ How an agent decides its next action.
 - Self-critique and reflection loops: does making the agent check its
   own work actually catch errors, or just add latency and confident
   re-affirmation of the same mistake?
-- Where human approval gates should sit in a plan (ties to Module 5)
+- Where human approval gates should sit in a plan (ties to Module 8)
   from the *system design* side: how do you build a good approval
   checkpoint, not just decide to have one?
 
 ## 5. Multi-Agent System Design
-Beyond the workflow patterns in Module 8 — the underlying mechanics.
+Beyond the workflow patterns in Module 11 — the underlying mechanics.
 - Coordination/communication protocols between agents (shared scratch
   files, message passing, blackboard patterns)
 - Conflict and race conditions when multiple agents can act concurrently
@@ -90,7 +90,7 @@ Understanding *why* an agent did something after the fact.
   into tool/prompt design
 
 ## 8. Safety, Robustness & Guardrails (systems side)
-Complements Module 9/10's practitioner view with the builder's view.
+Complements Module 12/10's practitioner view with the builder's view.
 - Defending against prompt injection at the system level (untrusted
   content isolation, capability restrictions, output filtering) rather
   than relying on the agent "noticing"
@@ -132,8 +132,8 @@ How much of this generalizes vs. needs rethinking per domain.
 Pick 2–3 of these that best match who the course is actually for:
 - If the audience stays **developers using agents**, themes 1, 6, 8, and
   9 extend the existing modules most naturally (context engineering
-  deepens Module 1/3; evaluation deepens Module 9; guardrails deepens
-  Module 10).
+  deepens Module 1/3; evaluation deepens Module 12; guardrails deepens
+  Module 13).
 - If the course should grow a second track for **people building agent
   systems/tooling**, themes 2–5, 7, 10, and 11 are closer to a full
   syllabus of their own.

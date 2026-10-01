@@ -206,6 +206,6 @@ Turn in, or talk through with your supervisor:
 
 ## Next Up
 
-**Module 2**
+**Module 2 — Plug It In: MCP**
 
-You've learned to watch the loop. Next, you start shaping what goes *into* it — the instructions you give it in the first place.
+You've learned to watch the loop. Next, you give it a safe way to reach outside data — the tools it can plug into.

@@ -189,7 +189,7 @@ src/cli.py:18:    parser.add_argument("--dry-run", ...)</code></pre>
     <li>действие заблокировано запросом на разрешение</li>
     <li>достигнут жёсткий лимит (число шагов, время, контекст)</li>
   </ul>
-  <p><em>Правильно остановиться сложнее, чем кажется — подробнее в Модуле 9.</em></p>
+  <p><em>Правильно остановиться сложнее, чем кажется — подробнее в Модуле 12.</em></p>
 </section>
 
 <section class="slide">
@@ -353,9 +353,9 @@ src/cli.py:18:    parser.add_argument("--dry-run", ...)</code></pre>
       <text x="0" y="72"><tspan class="ln">├── </tspan><tspan class="dir">.agents/</tspan><tspan class="cm">   ← skills, правила, подагенты</tspan></text>
       <text x="0" y="98"><tspan class="ln">│   └── </tspan><tspan class="dir">skills/</tspan></text>
       <text x="0" y="124"><tspan class="ln">├── </tspan><tspan class="dir">docs/</tspan></text>
-      <text x="0" y="150"><tspan class="ln">│   └── </tspan><tspan class="dir">specs/</tspan><tspan class="cm">   ← спецификации фич (Модуль 3)</tspan></text>
+      <text x="0" y="150"><tspan class="ln">│   └── </tspan><tspan class="dir">specs/</tspan><tspan class="cm">   ← спецификации фич (Модуль 6)</tspan></text>
       <text x="0" y="176"><tspan class="ln">│       └── </tspan><tspan class="file">export-csv.md</tspan></text>
-      <text x="0" y="202"><tspan class="ln">├── </tspan><tspan class="dir">tasks/</tspan><tspan class="cm">   ← одноразовые планы (Модуль 5)</tspan></text>
+      <text x="0" y="202"><tspan class="ln">├── </tspan><tspan class="dir">tasks/</tspan><tspan class="cm">   ← одноразовые планы (Модуль 8)</tspan></text>
       <text x="0" y="228"><tspan class="ln">├── </tspan><tspan class="dir">features/</tspan><tspan class="cm">   ← код по фичам</tspan></text>
       <text x="0" y="254"><tspan class="ln">└── </tspan><tspan class="dir">src/</tspan></text>
     </svg>
@@ -424,7 +424,7 @@ src/cli.py:18:    parser.add_argument("--dry-run", ...)</code></pre>
     <li><strong>Исчерпание контекста посреди задачи</strong> — потеря исходной цели</li>
     <li><strong>Излишнее доверие к выводу инструмента</strong> — вывод «успех» не перепроверяется</li>
   </ul>
-  <p><em>Привычки против этого начнём строить с Модуля 2, а системно — в Модуле 9.</em></p>
+  <p><em>Привычки против этого начнём строить с Модуля 5, а системно — в Модуле 12.</em></p>
 </section>
 
 <section class="slide">
@@ -460,10 +460,10 @@ src/cli.py:18:    parser.add_argument("--dry-run", ...)</code></pre>
 </section>
 
 <section class="slide" data-layout="divider">
-  <p class="num">→ 02</p>
-  <h2>Далее: Промптинг и постановка задачи</h2>
+  <p class="num">→ 2</p>
+  <h2>Далее: MCP</h2>
   <p>Агентный подход = план → действие → наблюдение → повтор с реальной верификацией. Контекстные окна конечны; сжатие происходит с потерями — устойчивую память нужно класть в файлы. Права доступа существуют потому, что действие/наблюдение затрагивают реальный мир.</p>
-  <p><em>Точность на входе — точность на выходе.</em></p>
+  <p><em>Руки для агента: безопасный доступ к внешним системам.</em></p>
 </section>
 
 </main>

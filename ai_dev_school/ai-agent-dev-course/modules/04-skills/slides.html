@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 4 — Skills</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 4</p>
+  <h1>Skills</h1>
+  <h2>Процедурная память агента</h2>
+  <p class="course">Agentic Software Development: From Specs to Shipped Code</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Что такое skill и зачем он, если есть <code>CLAUDE.md</code></li>
+    <li>Анатомия: <code>SKILL.md</code>, frontmatter, поддерживающие файлы</li>
+    <li>Progressive disclosure, кто и когда вызывает skill, где они живут</li>
+    <li>Аргументы, динамический контекст, скрипты, <code>context: fork</code></li>
+    <li>Skill vs. CLAUDE.md vs. hook vs. MCP vs. subagent; открытый стандарт</li>
+    <li>Безопасность, тестирование и итерации; лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели модуля</h2>
+  <p>К концу модуля вы сможете:</p>
+  <ol>
+    <li>Написать skill: <code>SKILL.md</code>, frontmatter, ссылки на файлы и скрипты</li>
+    <li>Объяснить progressive disclosure и управлять тем, кто и когда вызывает skill</li>
+    <li>Выбрать между skill, <code>CLAUDE.md</code>, hook, MCP и subagent</li>
+    <li>Оценить skill по безопасности и проверить, что он срабатывает и работает</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Проблема: процедуры раздувают контекст</h2>
+  <ul>
+    <li>Вы снова и снова вставляете в чат один и тот же чек-лист или многошаговую процедуру</li>
+    <li>Раздел <code>CLAUDE.md</code> вырос из факта в <strong>процедуру</strong> — и грузится в каждую сессию, нужна она или нет</li>
+    <li><strong>Skill</strong> — папка с <code>SKILL.md</code> (инструкции) и вспомогательными файлами; тело загружается <strong>только когда skill используется</strong></li>
+    <li>Вызвать можно <code>/имя</code> вручную или дать модели решить по описанию</li>
+  </ul>
+  <blockquote><code>CLAUDE.md</code> — факты, которые всегда верны. Skill — процедура, которая нужна иногда.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Анатомия skill</h2>
+  <pre><code style="font-size:.85rem; line-height:1.32;">.claude/skills/review-diff/
+├── SKILL.md         # обязательный: frontmatter + инструкции
+├── security.md      # подробный чек-лист (читается по ссылке)
+├── examples.md      # примеры вывода
+└── scripts/
+    └── scope_check.sh   # исполняется, не загружается в контекст</code></pre>
+  <pre><code style="font-size:.72rem; line-height:1.32;">---
+name: review-diff
+description: Проводит структурированное ревью диффа по чек-листу (корректность, объём, безопасность, injection, переиспользование). Используй, когда просят проверить дифф, PR или «посмотри мои изменения» перед мержем.
+allowed-tools: Bash(git diff *) Bash(git log *)
+---
+# Ревью диффа
+1. `git diff --stat` — оцени объём относительно задачи.
+2. Пять проходов: корректность → объём → безопасность → injection → переиспользование.
+3. Выведи находки таблицей: файл, строка, риск, предложение.
+Подробный чек-лист безопасности — в [security.md](security.md).</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Frontmatter: ключевые поля</h2>
+  <table style="font-size:.8em;">
+    <tr><th>Поле</th><th>Зачем</th></tr>
+    <tr><td><code>description</code> / <code>when_to_use</code></td><td><strong>что делает и когда применять</strong> — по нему модель решает, вызвать ли skill; лимит ~1 536 символов на пару</td></tr>
+    <tr><td><code>name</code></td><td>имя команды <code>/имя</code> (по умолчанию — имя папки)</td></tr>
+    <tr><td><code>disable-model-invocation</code></td><td>только вы можете вызвать (для деплоя, коммита, отправки)</td></tr>
+    <tr><td><code>user-invocable: false</code></td><td>только модель (фоновое знание)</td></tr>
+    <tr><td><code>allowed-tools</code> / <code>disallowed-tools</code></td><td>заранее разрешить / убрать инструменты на время хода</td></tr>
+    <tr><td><code>context: fork</code> + <code>agent</code></td><td>выполнить в изолированном субагенте</td></tr>
+    <tr><td><code>paths</code>, <code>hooks</code>, <code>model</code>, <code>effort</code>, <code>arguments</code></td><td>активация по путям, хуки, модель, усилие, именованные аргументы</td></tr>
+    <tr><td><code>license</code>, <code>compatibility</code>, <code>metadata</code></td><td>поля открытого стандарта Agent Skills</td></tr>
+  </table>
+  <p>Все поля необязательны, рекомендуется <code>description</code>. Неизвестное поле Claude Code молча игнорирует — опечатка не даст ошибки.</p>
+</section>
+
+<section class="slide">
+  <h2>Progressive disclosure: три уровня</h2>
+  <div class="svg-scene">
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Три уровня загрузки skill">
+<style>.t{font:700 15px var(--font,sans-serif)}.d{font:13px var(--font,sans-serif);fill:var(--fg)}.c{font:12px var(--font,sans-serif);fill:var(--fg-dim);text-anchor:middle}</style>
+<g fill="var(--bg-2)" stroke-width="2.5">
+<rect x="20" y="16" width="520" height="70" rx="12" style="stroke:var(--accent)"/>
+<rect x="20" y="118" width="520" height="70" rx="12" style="stroke:var(--accent-3)"/>
+<rect x="20" y="220" width="520" height="70" rx="12" style="stroke:var(--accent-2)"/>
+</g>
+<text class="t" x="40" y="44" style="fill:var(--accent)">Уровень 1 · name + description</text><text class="d" x="40" y="68">всегда в контексте: список навыков, чтобы модель знала, что есть</text>
+<text class="t" x="40" y="146" style="fill:var(--accent-3)">Уровень 2 · тело SKILL.md</text><text class="d" x="40" y="170">загружается, когда skill вызван (вами или моделью)</text>
+<text class="t" x="40" y="248" style="fill:var(--accent-2)">Уровень 3 · файлы и скрипты</text><text class="d" x="40" y="272">reference.md, examples.md — читаются по ссылке; scripts/ — исполняются</text>
+<g stroke="var(--fg-dim)" stroke-width="2.5" fill="none"><line x1="280" y1="86" x2="280" y2="112"/><polyline points="274,106 280,116 286,106"/><line x1="280" y1="188" x2="280" y2="214"/><polyline points="274,208 280,218 286,208"/></g>
+<text class="c" x="345" y="106" style="text-anchor:start">триггер: совпало описание или /имя</text><text class="c" x="345" y="208" style="text-anchor:start">ссылка из SKILL.md</text>
+<text class="t" x="600" y="46" style="fill:var(--fg)">Цена в контексте</text>
+<text class="d" x="600" y="76">Ур. 1 — мало, но постоянно</text><text class="d" x="600" y="168">Ур. 2 — только при использовании</text><text class="d" x="600" y="270">Ур. 3 — почти ноль,</text><text class="d" x="600" y="288">скрипт не загружается, а запускается</text>
+</svg>
+  </div>
+  <p>Поэтому skill дешёвый: сотня навыков стоит только списка описаний. Если навыков много, часть описаний обрезается по бюджету — держите <code>description</code> коротким и с ключевым словом впереди.</p>
+</section>
+
+<section class="slide">
+  <h2>Кто и когда вызывает skill</h2>
+  <table style="font-size:.9em;">
+    <tr><th>Настройка</th><th>Вы (<code>/имя</code>)</th><th>Модель</th><th>Что в контексте</th></tr>
+    <tr><td>по умолчанию</td><td>да</td><td>да</td><td>описание всегда; тело — при вызове</td></tr>
+    <tr><td><code>disable-model-invocation: true</code></td><td>да</td><td><strong>нет</strong></td><td>описание не грузится; тело — при вашем вызове</td></tr>
+    <tr><td><code>user-invocable: false</code></td><td>нет</td><td>да</td><td>описание всегда; тело — при вызове</td></tr>
+  </table>
+  <ul>
+    <li>Побочные эффекты (<code>/deploy</code>, <code>/commit</code>, отправка сообщений) — только <code>disable-model-invocation: true</code>: не хотите, чтобы модель решила деплоить «потому что код готов»</li>
+    <li>Вызванный skill остаётся в разговоре как одно сообщение; <code>allowed-tools</code> действует только на этот ход</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Где живут skills</h2>
+  <table style="font-size:.88em;">
+    <tr><th>Уровень</th><th>Путь</th><th>Для кого</th></tr>
+    <tr><td>Enterprise</td><td><code>.claude/skills/</code> в каталоге managed settings</td><td>все на машинах организации</td></tr>
+    <tr><td>Personal</td><td><code>~/.claude/skills/&lt;имя&gt;/SKILL.md</code></td><td>вы, во всех проектах</td></tr>
+    <tr><td>Project</td><td><code>.claude/skills/&lt;имя&gt;/SKILL.md</code></td><td>все в репозитории — коммитьте</td></tr>
+    <tr><td>Nested</td><td><code>&lt;подкаталог&gt;/.claude/skills/</code></td><td>монорепозитории: подгружается при работе с файлами там</td></tr>
+    <tr><td>Plugin</td><td><code>&lt;plugin&gt;/skills/&lt;имя&gt;/</code></td><td>команда через плагин, имя <code>/plugin:skill</code></td></tr>
+    <tr><td>claude.ai</td><td>навыки аккаунта</td><td>Cowork, облачные сессии</td></tr>
+  </table>
+  <p>Старые <code>.claude/commands/*.md</code> продолжают работать — команды объединены со skills.</p>
+</section>
+
+<section class="slide">
+  <h2>Хорошее description</h2>
+  <div class="compare">
+    <div class="card before"><h4>Плохо</h4><p>«Помогает с ревью»</p></div>
+    <div class="card after"><h4>Хорошо</h4><p>«Проводит структурированное ревью диффа по чек-листу (корректность, объём, безопасность). Используй, когда просят проверить дифф, PR или «посмотри мои изменения» перед мержем.»</p></div>
+  </div>
+  <ul>
+    <li>Формула: <strong>что делает</strong> + <strong>когда использовать</strong> + <strong>фразы, которыми пользователь это попросит</strong></li>
+    <li>Ключевой случай — в начале: длинное описание обрезается</li>
+    <li>Срабатывает не вовремя → сузьте описание; не срабатывает → добавьте реальные фразы или вызывайте <code>/имя</code></li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Аргументы и динамический контекст</h2>
+  <pre><code style="font-size:.85rem; line-height:1.32;">---
+name: fix-issue
+description: Разобрать и исправить GitHub issue по нашему стандарту
+argument-hint: [номер-issue]
+disable-model-invocation: true
+---
+Исправь issue $ARGUMENTS: сначала воспроизведи, затем тест, затем правка.
+
+## Состояние репозитория (выполняется ДО отправки модели)
+!`git status --short`</code></pre>
+  <ul>
+    <li><code>/fix-issue 123</code> → <code>$ARGUMENTS</code> = <code>123</code>; есть <code>$0</code>, <code>$1</code> и именованные (<code>arguments:</code>)</li>
+    <li>Строка с восклицательным знаком и командой в обратных кавычках выполняется <strong>до</strong> модели, вывод подставляется в промпт — модель получает данные, а не команду</li>
+    <li>Работает только в Claude Code, не в чате claude.ai и не через API</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Скрипты: детерминизм внутри skill</h2>
+  <pre><code style="font-size:.85rem; line-height:1.32;">---
+name: render-chart
+description: Строит график из CSV. Используй, когда просят визуализировать данные из CSV.
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/render.sh *)
+---
+Запусти `${CLAUDE_SKILL_DIR}/scripts/render.sh &lt;файл.csv&gt;` и покажи путь к PNG.</code></pre>
+  <ul>
+    <li>Скрипт <strong>исполняется</strong>, а не читается моделью: не тратит контекст и даёт одинаковый результат каждый раз</li>
+    <li><code>${CLAUDE_SKILL_DIR}</code> — папка skill; одинаковый путь в тексте и в <code>allowed-tools</code> разрешает запуск без запроса</li>
+    <li>Всё, что можно посчитать кодом (проверка скоупа, форматирование, парсинг), выносите в скрипт</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>context: fork — skill в субагенте</h2>
+  <pre><code style="font-size:.85rem; line-height:1.32;">---
+name: pr-summary
+description: Суммаризирует изменения в pull request
+context: fork
+agent: Explore
+allowed-tools: Bash(gh *)
+---
+## Контекст PR
+- Дифф: !`gh pr diff`
+## Задача
+Кратко опиши изменения и риски.</code></pre>
+  <ul>
+    <li>Skill выполняется в <strong>отдельном субагенте</strong> с чистым контекстом: он не видит вашей переписки — инструкции должны быть самодостаточными</li>
+    <li><code>agent:</code> выбирает тип (например, <code>Explore</code> — только чтение); по умолчанию работает в фоне</li>
+    <li>Подходит для задач с явным заданием; правила вроде «используй такие-то конвенции API» в fork бессмысленны</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Skill, CLAUDE.md, hook, MCP, subagent</h2>
+  <table style="font-size:.88em;">
+    <tr><th>Механизм</th><th>Для чего</th><th>Когда в контексте</th><th>Гарантия</th></tr>
+    <tr><td><code>CLAUDE.md</code></td><td>факты и конвенции, всегда верные</td><td>всегда</td><td>модель может проигнорировать</td></tr>
+    <tr><td><strong>Skill</strong></td><td>процедура по требованию</td><td>при использовании</td><td>модель может проигнорировать</td></tr>
+    <tr><td><strong>Hook</strong></td><td>обязательное поведение</td><td>вне модели</td><td><strong>детерминированно</strong></td></tr>
+    <tr><td><strong>MCP</strong></td><td>доступ к внешней системе</td><td>описания инструментов</td><td>права сервера</td></tr>
+    <tr><td><strong>Subagent</strong></td><td>изоляция контекста или роль</td><td>отдельный контекст</td><td>границы инструментов</td></tr>
+  </table>
+  <blockquote>Skill — совет. Hook — закон. Если правило должно выполняться всегда — это hook (модуль 13).</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Открытый стандарт и распространение</h2>
+  <ul>
+    <li><strong>Agent Skills</strong> (<code>agentskills.io</code>) — открытая спецификация формата <code>SKILL.md</code>; поля стандарта: <code>name</code>, <code>description</code>, <code>license</code>, <code>compatibility</code>, <code>metadata</code>, <code>allowed-tools</code></li>
+    <li>Claude Code понимает больше полей; но при загрузке в claude.ai или Skills API лишнее поле (<code>argument-hint</code>) даёт <strong>ошибку</strong> — для переносимости держитесь шести полей</li>
+    <li>Распространение: коммит в <code>.claude/skills/</code>, <strong>плагин</strong>, managed settings организации; примеры — репозиторий <code>anthropics/skills</code></li>
+    <li>Расширение MCP <strong>Skills over MCP</strong>: навыки, обнаруживаемые через MCP (модуль 2)</li>
+    <li>Системы памяти (модуль 3, актив Skill в TencentDB Agent Memory) идут дальше: <strong>извлекают</strong> навыки из завершённых задач</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Безопасность skills</h2>
+  <ul>
+    <li>Skill — это <strong>инструкции + скрипты</strong>: выполнение кода и команд с вашими правами</li>
+    <li><code>allowed-tools</code> может сам выдать себе широкие права; «доверие к рабочей папке» это поле <strong>не</strong> блокирует — читайте <code>allowed-tools</code> у skills из чужих репозиториев</li>
+    <li>Сторонний skill — цепочка поставок и <strong>prompt injection с авторитетом</strong>: его текст читается как инструкция</li>
+    <li>Контроль: <code>Skill(deploy *)</code> в deny, <code>Skill(commit)</code> в allow; <code>Skill</code> в deny отключает все skills; побочные эффекты — <code>disable-model-invocation: true</code></li>
+    <li>Проверяйте skills как код: ревью, <code>CODEOWNERS</code> на <code>.claude/skills/</code>, пин версий плагина</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Тестирование и итерации</h2>
+  <ul>
+    <li>«Skill сработал» ≠ «skill сделал правильно» — проверяйте <strong>два</strong> раза: срабатывает на нужных запросах и результат верный</li>
+    <li>Набор: 5 запросов, где <strong>должен</strong> сработать, 5 — где <strong>не должен</strong>; прогон в свежей сессии</li>
+    <li>Базовое сравнение: тот же запрос <strong>с</strong> skill и <strong>без</strong> него — стало ли лучше и какой ценой (токены, время)</li>
+    <li>Инструменты: плагин <code>skill-creator</code> (evals, бенчмарк, тюнинг описания), <code>claude plugin eval</code> для skills в плагине, <code>claude plugin validate .claude/skills</code> для битого YAML, <code>/doctor</code> и <code>--debug</code></li>
+    <li>Битый YAML не даёт ошибки: skill грузится без метаданных, <code>/имя</code> работает, а модель его не находит</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная — упакуйте процедуру в skill</h2>
+  <ol>
+    <li>Выберите повторяющуюся процедуру из курса (ревью диффа из модуля 12, черновик release notes, чек-лист расползания объёма)</li>
+    <li>Оформите skill: <code>SKILL.md</code> с хорошим <code>description</code>, подробности — в отдельном файле, детерминированную часть — в скрипт</li>
+    <li>Составьте набор из 5 «должен» + 5 «не должен» запросов и прогоните в свежих сессиях; доведите срабатывание</li>
+    <li>Сравните результат с skill и без него; запишите разницу по качеству и стоимости</li>
+    <li>Для skill с побочным эффектом задайте <code>disable-model-invocation: true</code> и добавьте deny-правило; заметка по безопасности</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Папка skill (<code>SKILL.md</code>, вспомогательные файлы, скрипт)</li>
+    <li>Набор из 10 запросов и таблица результатов: срабатывание, качество с skill vs. без</li>
+    <li>Заметка по безопасности: права, <code>allowed-tools</code>, кто может вызывать</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 5</p>
+  <h2>Далее: Промптинг и постановка задач</h2>
+  <p>Skill — процедурная память: она загружается, когда нужна, и не раздувает контекст. Но это совет, а не закон: обязательное закрепляйте hook-ами, а чужие skills проверяйте как код.</p>
+  <p>Теперь у агента есть руки (MCP), память и навыки — дальше учимся давать ему точные инструкции.</p>
+</section>
+
+</main>
+
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

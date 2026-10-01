@@ -24,7 +24,7 @@ taken seriously, not talked down to.
 
 ## Format
 
-- 13 modules (Module 0 through Module 12), ~45–90 minutes each
+- 16 modules (Module 0 through Module 15), ~45–90 minutes each
 - Every module = a short concept explanation + a real hands-on task with
   Claude Code + a reflection/checkpoint
 - **Supervised, real-tool use throughout.** Read
@@ -45,7 +45,7 @@ taken seriously, not talked down to.
 | Framing | Direct, technical | Same technical substance, more scaffolding and concrete metaphors |
 | Supervision | None assumed | Built-in supervisor guide, sandboxed setup required |
 | Scope examples | APIs, refactors, CI/CD | Personal projects: sites, games, bots, school tools |
-| Module count | 12 | 13 (adds Module 0: what an agent actually is) |
+| Module count | 15 | 16 (adds Module 0: what an agent actually is) |
 
 ## Learning outcomes
 
@@ -68,19 +68,23 @@ for detail per module.
 
 | # | Module |
 |---|--------|
-| 0 | [Meet Your AI Coding Partner](modules/00-meet-your-ai-partner.md) |
-| 1 | [How the Agent Thinks: The Loop](modules/01-how-the-agent-thinks.md) |
-| 2 | [Instructions That Actually Work](modules/02-instructions-that-work.md) |
-| 3 | [Write It Down First](modules/03-write-it-down-first.md) |
-| 4 | [Keep It Looking Consistent](modules/04-keep-it-consistent.md) |
-| 5 | [Plan Before You Build](modules/05-plan-before-you-build.md) |
-| 6 | [Prove It Works](modules/06-prove-it-works.md) |
-| 7 | [Just Talk It Through](modules/07-just-talk-it-through.md) |
-| 8 | [Two Heads Are Better](modules/08-two-heads-are-better.md) |
-| 9 | [Don't Trust Blindly](modules/09-dont-trust-blindly.md) |
-| 10 | [Automate the Boring Stuff](modules/10-automate-the-boring-stuff.md) |
-| 11 | [Rules of the Road](modules/11-rules-of-the-road.md) |
-| 12 | [Capstone: Build & Show](modules/12-capstone.md) |
+| 0 | [Meet Your AI Coding Partner](modules/00-meet-your-ai-partner/lesson.md) |
+| 1 | [How the Agent Thinks: The Loop](modules/01-how-the-agent-thinks/lesson.md) |
+| 2 | [Plug It In: MCP](modules/02-plug-it-in/lesson.md) |
+| 3 | [Give Your Agent a Memory](modules/03-give-it-a-memory/lesson.md) |
+| 4 | [Teach It a Move: Skills](modules/04-teach-it-a-move/lesson.md) |
+| 5 | [Instructions That Actually Work](modules/05-instructions-that-work/lesson.md) |
+| 6 | [Write It Down First](modules/06-write-it-down-first/lesson.md) |
+| 7 | [Keep It Looking Consistent](modules/07-keep-it-consistent.md) |
+| 8 | [Plan Before You Build](modules/08-plan-before-you-build.md) |
+| 9 | [Prove It Works](modules/09-prove-it-works.md) |
+| 10 | [Just Talk It Through](modules/10-just-talk-it-through/lesson.md) |
+| 11 | [Two Heads Are Better](modules/11-two-heads-are-better.md) |
+| 12 | [Don't Trust Blindly](modules/12-dont-trust-blindly.md) |
+| 13 | [Automate the Boring Stuff](modules/13-automate-the-boring-stuff.md) |
+| 14 | [Rules of the Road](modules/14-rules-of-the-road/lesson.md) |
+| 15 | [Capstone: Build & Show](modules/15-capstone/lesson.md) |
+
 
 ## Open questions to settle before running this
 
