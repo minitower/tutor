@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 1 — Документация проекта</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 1</p>
+  <h1>Документация проекта</h1>
+  <h2>От идеи до спецификации: user story, use case, test case, BPMN, UML, C4 — и как это читает агент</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Зачем документировать и что из этого можно пропустить</li>
+    <li>Vision / PRD</li>
+    <li>User story, критерии приёмки, use case, test case</li>
+    <li>BPMN, UML и ER, C4</li>
+    <li>ADR и OpenAPI</li>
+    <li>Docs-as-code и документация для ИИ-агентов</li>
+    <li>Лабораторная: спецификация «Slot»</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Описать продукт так, чтобы разработчик, тестировщик и агент построили <strong>одно и то же</strong></li>
+    <li>Знать, какой артефакт отвечает на какой вопрос</li>
+    <li>Писать диаграммы <strong>как код</strong>, а не как картинки</li>
+    <li>Хранить документацию в репозитории так, чтобы агент мог по ней работать</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Зачем документировать</h2>
+  <p>Цена недопонимания растёт с каждым этапом:</p>
+  <div class="svg-scene">
+    <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" style="width:700px">
+      <line x1="40" y1="170" x2="680" y2="170" stroke="var(--border)" stroke-width="2"/>
+      <rect x="80" y="160" width="120" height="10" rx="3" fill="var(--accent-2)"/>
+      <text x="140" y="150" text-anchor="middle" fill="var(--accent-2)" font-size="18" font-weight="700">1×</text>
+      <text x="140" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">в спецификации</text>
+      <rect x="290" y="120" width="120" height="50" rx="3" fill="var(--accent)"/>
+      <text x="350" y="110" text-anchor="middle" fill="var(--accent)" font-size="18" font-weight="700">~10×</text>
+      <text x="350" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">в коде</text>
+      <rect x="500" y="30" width="120" height="140" rx="3" fill="var(--danger)"/>
+      <text x="560" y="22" text-anchor="middle" fill="var(--danger)" font-size="18" font-weight="700">~100×</text>
+      <text x="560" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">в продакшене</text>
+    </svg>
+  </div>
+  <blockquote>Агент <strong>уверенно</strong> реализует то, что вы написали, а не то, что вы имели в виду.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Карта артефактов</h2>
+  <table style="font-size:.95rem">
+    <tr><th>Вопрос</th><th>Артефакт</th></tr>
+    <tr><td>Зачем и для кого?</td><td>Vision / PRD</td></tr>
+    <tr><td>Что хочет пользователь?</td><td>User story + критерии приёмки</td></tr>
+    <tr><td>Как пользователь взаимодействует с системой?</td><td>Use case</td></tr>
+    <tr><td>Как проверить, что работает?</td><td>Test case</td></tr>
+    <tr><td>Как идёт бизнес-процесс?</td><td>BPMN</td></tr>
+    <tr><td>Как общаются компоненты? Какие данные?</td><td>UML (sequence, state), ER</td></tr>
+    <tr><td>Из чего состоит система?</td><td>C4</td></tr>
+    <tr><td>Почему решили именно так?</td><td>ADR</td></tr>
+    <tr><td>Какой контракт у API?</td><td>OpenAPI</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Vision / PRD</h2>
+  <p>Одна страница, которая отвечает на вопросы:</p>
+  <ul>
+    <li><strong>Проблема:</strong> мастер ведёт запись в мессенджере, клиенты пишут ночью, путаница в слотах</li>
+    <li><strong>Аудитория:</strong> малый бизнес с почасовой записью</li>
+    <li><strong>Цели:</strong> клиент записывается за 30 секунд без переписки</li>
+    <li><strong>Не-цели:</strong> онлайн-оплата, мультифилиальность (не в первой версии)</li>
+    <li><strong>Метрики успеха:</strong> доля записей через сайт, число отмен</li>
+  </ul>
+  <blockquote><strong>Не-цели</strong> важны так же, как цели: они останавливают и людей, и агентов от лишней работы.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>User story</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Плохо</h4>
+      <p>«Как пользователь я хочу удобную систему»</p>
+      <p><em>Нельзя проверить, нельзя оценить, непонятно, для кого.</em></p>
+    </div>
+    <div class="card after">
+      <h4>Хорошо</h4>
+      <p>«Как <strong>клиент барбершопа</strong>, я хочу <strong>видеть свободные слоты на неделю вперёд</strong>, чтобы <strong>записаться без переписки с мастером</strong>»</p>
+    </div>
+  </div>
+  <p>Проверка по <strong>INVEST</strong>: Independent, Negotiable, Valuable, Estimable, Small, Testable</p>
+</section>
+
+<section class="slide">
+  <h2>Критерии приёмки: Given / When / Then</h2>
+  <pre><code style="font-size:.92rem">Сценарий: запись на свободный слот
+  <span style="color:var(--accent)">Дано</span>  слот «пт 15:00» свободен
+  <span style="color:var(--accent-3)">Когда</span> клиент выбирает его и вводит имя и телефон
+  <span style="color:var(--accent-2)">Тогда</span> слот помечается занятым
+  <span style="color:var(--accent-2)">И</span>     клиент видит подтверждение, мастер получает уведомление
+
+Сценарий: гонка за один слот
+  <span style="color:var(--accent)">Дано</span>  два клиента открыли слот «пт 15:00»
+  <span style="color:var(--accent-3)">Когда</span> оба нажимают «Записаться»
+  <span style="color:var(--accent-2)">Тогда</span> запись получает только первый
+  <span style="color:var(--accent-2)">И</span>     второй видит «Слот уже занят» и ближайшие свободные</code></pre>
+  <p><em>Второй сценарий — тот, о котором забывают. И агент тоже, если его не написать.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Use case: «Забронировать слот»</h2>
+  <ul>
+    <li><strong>Акторы:</strong> клиент (основной), мастер (получает уведомление)</li>
+    <li><strong>Предусловия:</strong> у мастера опубликовано расписание</li>
+  </ul>
+  <div class="flow-loop" style="margin:.6rem 0">
+    <div class="flow-step" style="--c:var(--accent);min-width:0;padding:.7rem 1rem"><span class="flow-label" style="font-size:1rem">Страница</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent);min-width:0;padding:.7rem 1rem"><span class="flow-label" style="font-size:1rem">Услуга</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0;padding:.7rem 1rem"><span class="flow-label" style="font-size:1rem">Слот</span><span class="flow-desc">3a: заняли</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0;padding:.7rem 1rem"><span class="flow-label" style="font-size:1rem">Контакты</span><span class="flow-desc">4a: неверный телефон</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2);min-width:0;padding:.7rem 1rem"><span class="flow-label" style="font-size:1rem">Запись + уведомление</span></div>
+  </div>
+  <ul>
+    <li><strong>Постусловия:</strong> слот занят, запись в БД, уведомление в очереди</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Test case</h2>
+  <table>
+    <tr><th>Поле</th><th>Значение</th></tr>
+    <tr><td>ID</td><td>TC-07</td></tr>
+    <tr><td>Название</td><td>Повторная запись на занятый слот</td></tr>
+    <tr><td>Предусловия</td><td>Слот 42 уже занят записью 1017</td></tr>
+    <tr><td>Шаги</td><td><code>POST /api/bookings</code> с <code>slot_id=42</code></td></tr>
+    <tr><td>Ожидаемый результат</td><td><code>409 Conflict</code>, тело <code>{"error": "slot_taken"}</code>, запись 1017 не изменилась</td></tr>
+    <tr><td>Связь</td><td>US-03, сценарий «гонка за один слот»</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Цепочка трассировки</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">User story</span><span class="flow-desc">US-03</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Критерии</span><span class="flow-desc">Given/When/Then</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Test case</span><span class="flow-desc">TC-07</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Автотест</span><span class="flow-desc">test_tc07_…</span></div>
+  </div>
+  <ul>
+    <li>Каждый автотест ссылается на ID истории или тест-кейса</li>
+    <li>Изменили требование → видно, какие тесты затронуты</li>
+    <li>Для агента тест — <strong>исполняемая</strong> спецификация: его нельзя «понять по-своему»</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>BPMN: язык бизнес-процессов</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 760 110" xmlns="http://www.w3.org/2000/svg" style="width:760px">
+      <circle cx="50" cy="45" r="22" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+      <text x="50" y="98" text-anchor="middle" fill="var(--fg)" font-size="13">Событие</text>
+      <rect x="150" y="22" width="120" height="46" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="210" y="98" text-anchor="middle" fill="var(--fg)" font-size="13">Задача</text>
+      <polygon points="380,20 405,45 380,70 355,45" fill="none" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="380" y="50" text-anchor="middle" fill="var(--accent-3)" font-size="16" font-weight="700">×</text>
+      <text x="380" y="98" text-anchor="middle" fill="var(--fg)" font-size="13">Шлюз</text>
+      <rect x="470" y="15" width="150" height="60" fill="none" stroke="var(--fg-dim)" stroke-width="1.5"/>
+      <line x1="495" y1="15" x2="495" y2="75" stroke="var(--fg-dim)" stroke-width="1.5"/>
+      <text x="545" y="98" text-anchor="middle" fill="var(--fg)" font-size="13">Пул / дорожка</text>
+      <line x1="660" y1="45" x2="740" y2="45" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#b0)"/>
+      <text x="700" y="98" text-anchor="middle" fill="var(--fg)" font-size="13">Поток</text>
+      <defs><marker id="b0" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+    </svg>
+  </div>
+  <ul>
+    <li><strong>Событие</strong> — начало, конец, таймер, сообщение · <strong>Задача</strong> — действие человека или системы</li>
+    <li><strong>Шлюз</strong> — развилка · <strong>Дорожка</strong> — кто выполняет: клиент, система, мастер</li>
+    <li>BPMN читают и бизнес, и разработчики — хорош для согласования процесса</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>BPMN: процесс бронирования</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" style="width:1000px">
+      <style>
+        .bp-lane{fill:none;stroke:var(--border);stroke-width:1.5}
+        .bp-ln{font-size:13px;fill:var(--fg-dim);font-weight:700}
+        .bp-t{fill:var(--card);stroke-width:2}
+        .bp-tx{font-size:12px;fill:var(--fg);text-anchor:middle}
+        .bp-a{stroke:var(--fg-dim);stroke-width:1.6;fill:none}
+      </style>
+      <defs><marker id="b1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect class="bp-lane" x="0" y="0" width="1000" height="90"/>
+      <rect class="bp-lane" x="0" y="90" width="1000" height="120"/>
+      <rect class="bp-lane" x="0" y="210" width="1000" height="90"/>
+      <text class="bp-ln" x="12" y="50">Клиент</text>
+      <text class="bp-ln" x="12" y="155">Система</text>
+      <text class="bp-ln" x="12" y="260">Мастер</text>
+      <circle cx="110" cy="45" r="15" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+      <rect class="bp-t" x="150" y="22" width="110" height="46" rx="9" stroke="var(--accent)"/>
+      <text class="bp-tx" x="205" y="50">Выбрать слот</text>
+      <rect class="bp-t" x="290" y="22" width="120" height="46" rx="9" stroke="var(--accent)"/>
+      <text class="bp-tx" x="350" y="50">Ввести контакты</text>
+      <polygon points="460,125 488,150 460,175 432,150" fill="none" stroke="var(--accent-3)" stroke-width="2"/>
+      <text class="bp-tx" x="460" y="195">свободен?</text>
+      <rect class="bp-t" x="530" y="100" width="120" height="40" rx="9" stroke="var(--accent-2)"/>
+      <text class="bp-tx" x="590" y="125">Создать запись</text>
+      <rect class="bp-t" x="680" y="100" width="130" height="40" rx="9" stroke="var(--accent-2)"/>
+      <text class="bp-tx" x="745" y="125">В очередь</text>
+      <rect class="bp-t" x="530" y="160" width="160" height="40" rx="9" stroke="var(--danger)"/>
+      <text class="bp-tx" x="610" y="185">Показать свободные</text>
+      <rect class="bp-t" x="840" y="22" width="130" height="46" rx="9" stroke="var(--accent-2)"/>
+      <text class="bp-tx" x="905" y="50">Подтверждение</text>
+      <rect class="bp-t" x="680" y="230" width="130" height="46" rx="9" stroke="var(--accent)"/>
+      <text class="bp-tx" x="745" y="258">Уведомление</text>
+      <circle cx="865" cy="253" r="16" fill="none" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="865" y="258" text-anchor="middle" fill="var(--accent-3)" font-size="12">24ч</text>
+      <rect class="bp-t" x="900" y="230" width="90" height="46" rx="9" stroke="var(--accent)"/>
+      <text class="bp-tx" x="945" y="258">Напомнить</text>
+      <line class="bp-a" x1="125" y1="45" x2="146" y2="45" marker-end="url(#b1)"/>
+      <line class="bp-a" x1="260" y1="45" x2="286" y2="45" marker-end="url(#b1)"/>
+      <path class="bp-a" d="M410,45 L460,45 L460,121" marker-end="url(#b1)"/>
+      <path class="bp-a" d="M488,150 L510,150 L510,120 L526,120" marker-end="url(#b1)"/>
+      <text x="505" y="112" fill="var(--accent-2)" font-size="11">да</text>
+      <path class="bp-a" d="M460,175 L460,180 L526,180" marker-end="url(#b1)"/>
+      <text x="480" y="208" fill="var(--danger)" font-size="11">нет</text>
+      <line class="bp-a" x1="650" y1="120" x2="676" y2="120" marker-end="url(#b1)"/>
+      <path class="bp-a" d="M810,120 L905,120 L905,72" marker-end="url(#b1)"/>
+      <line class="bp-a" x1="745" y1="140" x2="745" y2="226" marker-end="url(#b1)"/>
+      <line class="bp-a" x1="810" y1="253" x2="845" y2="253" marker-end="url(#b1)"/>
+      <line class="bp-a" x1="881" y1="253" x2="896" y2="253" marker-end="url(#b1)"/>
+    </svg>
+  </div>
+  <p><em>Храним как BPMN XML (bpmn.io / Camunda Modeler) рядом с кодом.</em></p>
+</section>
+
+<section class="slide">
+  <h2>UML: какие диаграммы реально нужны</h2>
+  <table>
+    <tr><th>Диаграмма</th><th>Отвечает на вопрос</th><th>Нужна «Slot»?</th></tr>
+    <tr><td>Use case</td><td>Кто что делает с системой</td><td>Да, одна</td></tr>
+    <tr><td>Sequence</td><td>Кто кого вызывает и в каком порядке</td><td>Да, для бронирования</td></tr>
+    <tr><td>State</td><td>Через какие состояния проходит объект</td><td>Да, для записи</td></tr>
+    <tr><td>Class</td><td>Структура кода</td><td>Обычно нет — видно в коде</td></tr>
+    <tr><td>Activity</td><td>Алгоритм шаг за шагом</td><td>Если есть BPMN — нет</td></tr>
+  </table>
+  <blockquote>Рисуем то, что <strong>трудно понять из кода</strong>.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Sequence-диаграмма как код (Mermaid)</h2>
+  <div class="compare" style="grid-template-columns: 1.1fr 1fr; align-items:center">
+    <pre style="margin:0"><code style="font-size:.78rem;line-height:1.35">sequenceDiagram
+  actor C as Клиент
+  participant F as Фронтенд
+  participant A as API
+  participant D as БД
+  participant Q as Очередь
+  C->>F: выбрать слот 42
+  F->>A: POST /api/bookings
+  A->>D: UPDATE slots … AND free
+  D-->>A: 1 строка
+  A->>Q: notify(master, 1017)
+  A-->>F: 201 Created
+  F-->>C: «Вы записаны»</code></pre>
+    <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%">
+      <style>.sq-h{font-size:12px;font-weight:700;text-anchor:middle}.sq-m{font-size:10px;fill:var(--fg);text-anchor:middle}.sq-l{stroke:var(--border);stroke-dasharray:4 4}</style>
+      <defs><marker id="b2" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--fg-dim)"/></marker></defs>
+      <text class="sq-h" x="30" y="16" fill="var(--accent)">Клиент</text>
+      <text class="sq-h" x="115" y="16" fill="var(--accent)">Фронт</text>
+      <text class="sq-h" x="200" y="16" fill="var(--accent-2)">API</text>
+      <text class="sq-h" x="285" y="16" fill="var(--accent-2)">БД</text>
+      <text class="sq-h" x="365" y="16" fill="var(--accent-3)">Очередь</text>
+      <line class="sq-l" x1="30" y1="24" x2="30" y2="295"/><line class="sq-l" x1="115" y1="24" x2="115" y2="295"/>
+      <line class="sq-l" x1="200" y1="24" x2="200" y2="295"/><line class="sq-l" x1="285" y1="24" x2="285" y2="295"/>
+      <line class="sq-l" x1="365" y1="24" x2="365" y2="295"/>
+      <g stroke="var(--fg-dim)" stroke-width="1.5">
+        <line x1="30" y1="50" x2="112" y2="50" marker-end="url(#b2)"/>
+        <line x1="115" y1="85" x2="197" y2="85" marker-end="url(#b2)"/>
+        <line x1="200" y1="120" x2="282" y2="120" marker-end="url(#b2)"/>
+        <line x1="285" y1="155" x2="203" y2="155" stroke-dasharray="4 3" marker-end="url(#b2)"/>
+        <line x1="200" y1="190" x2="362" y2="190" marker-end="url(#b2)"/>
+        <line x1="200" y1="225" x2="118" y2="225" stroke-dasharray="4 3" marker-end="url(#b2)"/>
+        <line x1="115" y1="260" x2="33" y2="260" stroke-dasharray="4 3" marker-end="url(#b2)"/>
+      </g>
+      <text class="sq-m" x="72" y="44">слот 42</text>
+      <text class="sq-m" x="157" y="79">POST</text>
+      <text class="sq-m" x="242" y="114">UPDATE</text>
+      <text class="sq-m" x="242" y="149">1 строка</text>
+      <text class="sq-m" x="282" y="184">notify</text>
+      <text class="sq-m" x="157" y="219">201</text>
+      <text class="sq-m" x="72" y="254">«записаны»</text>
+    </svg>
+  </div>
+  <p><em>Слева — что хранится в репозитории и читает агент. Справа — что рисует GitHub.</em></p>
+</section>
+
+<section class="slide">
+  <h2>State и ER</h2>
+  <div class="compare" style="grid-template-columns: 1fr 1fr">
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">State: жизнь записи</h4>
+      <pre><code style="font-size:.78rem">stateDiagram-v2
+  [*] --> pending
+  pending --> confirmed: мастер подтвердил
+  pending --> cancelled: клиент отменил
+  confirmed --> done: визит состоялся
+  confirmed --> no_show: не пришёл</code></pre>
+    </div>
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">ER: данные</h4>
+      <pre><code style="font-size:.78rem">erDiagram
+  MASTER ||--o{ SERVICE : offers
+  MASTER ||--o{ SLOT : has
+  SLOT ||--o| BOOKING : "booked by"
+  CLIENT ||--o{ BOOKING : makes</code></pre>
+    </div>
+  </div>
+  <p><code>||--o|</code> — «у слота не больше одной записи»: это правило потом станет уникальным индексом в БД.</p>
+</section>
+
+<section class="slide">
+  <h2>C4: архитектура на четырёх уровнях масштаба</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">1 · Context</span><span class="flow-desc">система, люди, внешние системы</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">2 · Container</span><span class="flow-desc">фронтенд, API, БД, очередь</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--fg-dim)"><span class="flow-label">3 · Component</span><span class="flow-desc">модули внутри контейнера</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--fg-dim)"><span class="flow-label">4 · Code</span><span class="flow-desc">классы — почти не рисуют</span></div>
+  </div>
+  <p>Как карты: страна → город → район → дом. Для «Slot» достаточно уровней 1 и 2.</p>
+</section>
+
+<section class="slide">
+  <h2>C4 Container: «Slot»</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 980 330" xmlns="http://www.w3.org/2000/svg" style="width:980px">
+      <style>
+        .c4{fill:var(--card);stroke-width:2}
+        .c4t{font-size:14px;font-weight:700;text-anchor:middle}
+        .c4d{font-size:11px;fill:var(--fg-dim);text-anchor:middle}
+        .c4a{stroke:var(--fg-dim);stroke-width:1.5;fill:none}
+        .c4l{font-size:10px;fill:var(--fg-dim)}
+      </style>
+      <defs><marker id="b3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect x="230" y="70" width="620" height="250" rx="12" fill="none" stroke="var(--fg-dim)" stroke-dasharray="6 5"/>
+      <text x="840" y="312" text-anchor="end" fill="var(--fg-dim)" font-size="12">Система «Slot»</text>
+      <circle cx="80" cy="45" r="16" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text class="c4t" x="80" y="80" fill="var(--accent)">Клиент</text>
+      <circle cx="80" cy="215" r="16" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text class="c4t" x="80" y="250" fill="var(--accent)">Мастер</text>
+      <rect class="c4" x="250" y="90" width="180" height="60" rx="10" stroke="var(--accent)"/>
+      <text class="c4t" x="340" y="115" fill="var(--accent)">Публичный сайт</text>
+      <text class="c4d" x="340" y="134">Next.js · SSR</text>
+      <rect class="c4" x="250" y="190" width="180" height="60" rx="10" stroke="var(--accent)"/>
+      <text class="c4t" x="340" y="215" fill="var(--accent)">Админка</text>
+      <text class="c4d" x="340" y="234">SPA</text>
+      <rect class="c4" x="490" y="140" width="160" height="60" rx="10" stroke="var(--accent-2)"/>
+      <text class="c4t" x="570" y="165" fill="var(--accent-2)">API</text>
+      <text class="c4d" x="570" y="184">FastAPI</text>
+      <rect class="c4" x="700" y="90" width="135" height="60" rx="10" stroke="var(--accent-2)"/>
+      <text class="c4t" x="767" y="115" fill="var(--accent-2)">PostgreSQL</text>
+      <text class="c4d" x="767" y="134">данные</text>
+      <rect class="c4" x="700" y="200" width="135" height="60" rx="10" stroke="var(--accent-3)"/>
+      <text class="c4t" x="767" y="225" fill="var(--accent-3)">Redis + воркер</text>
+      <text class="c4d" x="767" y="244">уведомления</text>
+      <rect class="c4" x="880" y="200" width="95" height="60" rx="10" stroke="var(--fg-dim)"/>
+      <text class="c4t" x="927" y="225" fill="var(--fg-dim)">Telegram</text>
+      <text class="c4d" x="927" y="244">e-mail</text>
+      <path class="c4a" d="M96,45 L200,45 L200,110 L246,110" marker-end="url(#b3)"/>
+      <path class="c4a" d="M96,215 L246,215" marker-end="url(#b3)"/>
+      <line class="c4a" x1="430" y1="125" x2="486" y2="160" marker-end="url(#b3)"/>
+      <line class="c4a" x1="430" y1="215" x2="486" y2="182" marker-end="url(#b3)"/>
+      <text class="c4l" x="440" y="135">JSON/HTTPS</text>
+      <line class="c4a" x1="650" y1="160" x2="696" y2="125" marker-end="url(#b3)"/>
+      <text class="c4l" x="655" y="135">SQL</text>
+      <line class="c4a" x1="650" y1="182" x2="696" y2="220" marker-end="url(#b3)"/>
+      <line class="c4a" x1="835" y1="230" x2="876" y2="230" marker-end="url(#b3)"/>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>ADR и OpenAPI</h2>
+  <div class="compare">
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">ADR — почему так</h4>
+      <pre><code style="font-size:.75rem">ADR-0002: PostgreSQL вместо MongoDB
+Статус: принято
+Контекст: сущности связаны;
+  нужна защита от двойной записи
+Решение: PostgreSQL, уникальный
+  индекс на slot_id в bookings
+Последствия: нужны миграции;
+  гонку за слот решает БД</code></pre>
+    </div>
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">OpenAPI — контракт</h4>
+      <pre><code style="font-size:.75rem">paths:
+  /api/bookings:
+    post:
+      requestBody:
+        $ref: '#/…/BookingCreate'
+      responses:
+        '201': Запись создана
+        '409': Слот уже занят</code></pre>
+    </div>
+  </div>
+  <p>Из OpenAPI генерируются клиенты, моки и документация — и агенту не нужно угадывать поля.</p>
+</section>
+
+<section class="slide">
+  <h2>Docs-as-code</h2>
+  <pre><code style="font-size:.9rem">docs/
+  vision.md
+  stories/<span style="color:var(--accent)">US-01-view-slots.md</span> …
+  use-cases/UC-01-book-slot.md
+  tests/test-cases.md
+  bpmn/<span style="color:var(--accent-3)">booking.bpmn</span>
+  diagrams/<span style="color:var(--accent-2)">c4-container.md</span>      (Mermaid)
+  diagrams/<span style="color:var(--accent-2)">booking-sequence.md</span>  (Mermaid)
+  adr/0001-monolith.md, 0002-postgres.md
+  api/<span style="color:var(--accent)">openapi.yaml</span></code></pre>
+  <ul>
+    <li>Версионируется вместе с кодом, ревьюится в pull request</li>
+    <li>Mermaid рендерится прямо в GitHub/GitLab; PlantUML и BPMN — плагинами</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Как ИИ-агенты читают документацию</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Агент ошибается</h4>
+      <ul>
+        <li>Диаграмма — PNG-картинка</li>
+        <li>Требования — абзацы прозы</li>
+        <li>Одно правило в двух файлах, и они расходятся</li>
+        <li>Не сказано, где что лежит</li>
+      </ul>
+    </div>
+    <div class="card after">
+      <h4>Агент попадает</h4>
+      <ul>
+        <li>Mermaid / BPMN XML — читается точно</li>
+        <li>ID, списки, таблицы, Given/When/Then</li>
+        <li>Одно место правды на каждый факт</li>
+        <li><code>AGENTS.md</code> / <code>CLAUDE.md</code> — входная точка</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>AGENTS.md для «Slot»</h2>
+  <pre><code style="font-size:.92rem"># Slot — правила для агентов
+- Требования: docs/stories/; критерии приёмки — единственный источник правды
+- API-контракт: docs/api/openapi.yaml — не добавляй поля, которых там нет
+- Архитектурные решения: docs/adr/ — читай перед изменением структуры
+- Каждый новый эндпоинт → тест со ссылкой на ID истории
+- Изменил поведение → обнови историю и диаграмму в том же PR</code></pre>
+  <p><em>Коротко, конкретно, с путями к файлам. Агент читает это в начале каждой сессии.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Что маленькому проекту можно пропустить</h2>
+  <table>
+    <tr><th>Обязательно</th><th>Желательно</th><th>Можно пропустить</th></tr>
+    <tr><td>Vision на страницу</td><td>BPMN главного процесса</td><td>Class-диаграммы</td></tr>
+    <tr><td>User stories + критерии</td><td>Sequence для сложных мест</td><td>C4 уровней 3–4</td></tr>
+    <tr><td>OpenAPI</td><td>State для ключевых сущностей</td><td>Формальные use case для простых CRUD</td></tr>
+    <tr><td>ADR для важных решений</td><td>ER-диаграмма</td><td>Документы, которые никто не обновляет</td></tr>
+  </table>
+  <blockquote>Устаревшая документация хуже отсутствующей: она уверенно врёт.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <p>Напишите спецификацию «Slot» в папке <code>docs/</code>:</p>
+  <ol>
+    <li>Vision на одну страницу</li>
+    <li>8–10 user stories с критериями Given/When/Then</li>
+    <li>2 use case, 10 test case</li>
+    <li>BPMN бронирования, C4 Container, ER — как код</li>
+    <li>Черновик OpenAPI, 2 ADR, <code>AGENTS.md</code></li>
+    <li><strong>С агентом:</strong> дайте агенту только <code>docs/</code> и попросите найти противоречия и пробелы; затем — сгенерировать заготовки тестов по критериям</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Папка <code>docs/</code> со всеми артефактами</li>
+    <li>Список пробелов, которые нашёл агент, и как вы их исправили</li>
+    <li>Заготовки тестов со ссылками на ID историй</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 02</p>
+  <h2>Далее: Фронтенд-фреймворки</h2>
+  <p>Каждый артефакт отвечает на свой вопрос. Критерии приёмки → тест-кейсы → автотесты. Диаграммы — как код, рядом с кодом. <code>AGENTS.md</code> — входная точка для агента.</p>
+  <p><em>Дальше строим публичную страницу и админку «Slot» — и выбираем, на чём.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 5 — Базы данных</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 5</p>
+  <h1>Базы данных</h1>
+  <h2>Модель, транзакции, масштаб: как сделать двойную запись невозможной на уровне самой базы</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Почему БД — сердце приложения; моделирование и ограничения</li>
+    <li>Транзакции, гонки, уровни изоляции</li>
+    <li>Индексы подробно</li>
+    <li>Миграции без простоя</li>
+    <li>JSONB, выбор хранилища, OLTP vs OLAP</li>
+    <li>Порядок масштабирования, бэкапы</li>
+    <li>Лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Моделировать данные так, чтобы <strong>бизнес-правила соблюдала сама БД</strong></li>
+    <li>Понимать транзакции и изоляцию и предотвращать гонки</li>
+    <li>Менять схему работающей БД <strong>без простоя</strong></li>
+    <li>Выбирать хранилище под данные и знать порядок масштабирования</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Почему БД — сердце приложения</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" style="width:820px">
+      <defs><marker id="q0" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <g font-size="13" font-weight="700" text-anchor="middle">
+        <rect x="10" y="10" width="140" height="34" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text x="80" y="32" fill="var(--accent)">API</text>
+        <rect x="10" y="54" width="140" height="34" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text x="80" y="76" fill="var(--accent)">Воркеры</text>
+        <rect x="10" y="98" width="140" height="34" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text x="80" y="120" fill="var(--accent)">Админка</text>
+        <rect x="10" y="142" width="140" height="34" rx="8" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/><text x="80" y="164" fill="var(--accent-3)">Скрипт «на минутку»</text>
+      </g>
+      <ellipse cx="560" cy="60" rx="110" ry="22" fill="var(--card)" stroke="var(--accent-2)" stroke-width="3"/>
+      <path d="M450,60 L450,130 A110,22 0 0,0 670,130 L670,60" fill="var(--card)" stroke="var(--accent-2)" stroke-width="3"/>
+      <ellipse cx="560" cy="60" rx="110" ry="22" fill="var(--card)" stroke="var(--accent-2)" stroke-width="3"/>
+      <text x="560" y="105" text-anchor="middle" fill="var(--accent-2)" font-size="16" font-weight="700">PostgreSQL</text>
+      <text x="560" y="125" text-anchor="middle" fill="var(--fg-dim)" font-size="12">ограничения действуют для всех</text>
+      <g stroke="var(--fg-dim)" stroke-width="1.6">
+        <line x1="150" y1="27" x2="446" y2="75" marker-end="url(#q0)"/><line x1="150" y1="71" x2="446" y2="90" marker-end="url(#q0)"/>
+        <line x1="150" y1="115" x2="446" y2="105" marker-end="url(#q0)"/><line x1="150" y1="159" x2="446" y2="120" marker-end="url(#q0)"/>
+      </g>
+    </svg>
+  </div>
+  <ul>
+    <li>Код переписывают каждые пару лет; данные живут <strong>десятилетиями</strong></li>
+    <li>Баг в коде чинится деплоем; испорченные данные — иногда <strong>никак</strong></li>
+  </ul>
+  <blockquote>База данных — последняя линия обороны. Что она не запрещает, однажды случится.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Моделирование данных</h2>
+  <ul>
+    <li><strong>Сущности → таблицы</strong>, связи → внешние ключи (по ER-диаграмме из Модуля 1)</li>
+    <li><strong>Ключи:</strong> суррогатный <code>id bigint</code> — по умолчанию; естественный (телефон, email) меняется — не делайте его первичным</li>
+    <li><strong>Нормализация:</strong> каждый факт хранится в одном месте — нет противоречий при обновлении</li>
+    <li><strong>Денормализация</strong> — осознанно, ради скорости чтения, с понятным способом держать копию актуальной</li>
+  </ul>
+  <div class="compare">
+    <div class="card before"><h4>Не делайте</h4><p>Время в <code>timestamp</code> без пояса, деньги во <code>float</code>, статусы «как придётся» строкой.</p></div>
+    <div class="card after"><h4>Делайте</h4><p><code>timestamptz</code>, деньги — <code>numeric</code> или целое в копейках, статус — с <code>CHECK</code>.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Схема «Slot»</h2>
+  <div class="compare" style="grid-template-columns: 1fr 1fr; max-width:1150px">
+    <pre style="margin:0"><code style="font-size:.7rem;line-height:1.35">CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+CREATE TABLE masters (
+  id        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name      text NOT NULL,
+  timezone  text NOT NULL DEFAULT 'Europe/Moscow'
+);
+
+CREATE TABLE slots (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  master_id  bigint NOT NULL REFERENCES masters(id),
+  starts_at  timestamptz NOT NULL,
+  ends_at    timestamptz NOT NULL
+             <span style="color:var(--accent-2)">CHECK (ends_at &gt; starts_at)</span>,
+  booked     boolean NOT NULL DEFAULT false,
+  <span style="color:var(--accent-2)">EXCLUDE USING gist (master_id WITH =,
+    tstzrange(starts_at, ends_at) WITH &amp;&amp;)</span>
+);</code></pre>
+    <pre style="margin:0"><code style="font-size:.7rem;line-height:1.35">CREATE TABLE bookings (
+  id            bigint GENERATED ALWAYS AS IDENTITY
+                PRIMARY KEY,
+  slot_id       bigint NOT NULL REFERENCES slots(id),
+  client_phone  text NOT NULL
+    <span style="color:var(--accent-2)">CHECK (client_phone ~ '^\+7[0-9]{10}$')</span>,
+  status        text NOT NULL DEFAULT 'confirmed'
+    <span style="color:var(--accent-2)">CHECK (status IN ('confirmed', 'cancelled',
+                      'done', 'no_show'))</span>,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+<span style="color:var(--accent-3)">CREATE UNIQUE INDEX one_active_booking_per_slot
+  ON bookings (slot_id)
+  WHERE status &lt;&gt; 'cancelled';</span></code></pre>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Ограничения как бизнес-правила</h2>
+  <table>
+    <tr><th>Правило бизнеса</th><th>Ограничение в БД</th></tr>
+    <tr><td>У слота есть мастер</td><td><code>REFERENCES masters(id)</code></td></tr>
+    <tr><td>Слот заканчивается после начала</td><td><code>CHECK (ends_at &gt; starts_at)</code></td></tr>
+    <tr><td>У мастера не пересекаются слоты</td><td><code>EXCLUDE USING gist (... WITH &amp;&amp;)</code></td></tr>
+    <tr><td>Телефон в правильном формате</td><td><code>CHECK (client_phone ~ ...)</code></td></tr>
+    <tr><td>На слот не больше одной активной записи</td><td>Частичный <code>UNIQUE ... WHERE status &lt;&gt; 'cancelled'</code></td></tr>
+    <tr><td>Статус — из списка</td><td><code>CHECK (status IN (...))</code></td></tr>
+  </table>
+  <p>Частичный индекс важен: обычный <code>UNIQUE (slot_id)</code> запретил бы снова записаться на слот после отмены.</p>
+</section>
+
+<section class="slide">
+  <h2>Транзакции и ACID</h2>
+  <div class="trio" style="grid-template-columns: repeat(4, 1fr); max-width:1150px">
+    <div class="card"><h4>Atomicity</h4><p>Всё или ничего: запись создана <strong>и</strong> слот занят — или ни то ни другое.</p></div>
+    <div class="card"><h4>Consistency</h4><p>После транзакции все ограничения выполняются.</p></div>
+    <div class="card"><h4>Isolation</h4><p>Параллельные транзакции не видят «половинок» друг друга.</p></div>
+    <div class="card"><h4>Durability</h4><p>Подтверждённое не пропадёт при падении сервера (WAL).</p></div>
+  </div>
+  <pre><code style="font-size:.88rem">async with db.transaction():
+    await mark_slot_booked(slot_id)
+    booking = await insert_booking(slot_id, phone)
+    await enqueue_notification(booking.id)   <span style="color:var(--fg-dim)"># outbox-таблица в той же транзакции</span></code></pre>
+</section>
+
+<section class="slide">
+  <h2>Гонка: «проверил, потом вставил»</h2>
+  <pre><code style="font-size:.85rem">if not await repo.slot_is_free(slot_id):      <span style="color:var(--fg-dim)"># оба клиента видят «свободен»</span>
+    raise SlotTaken()
+await repo.insert_booking(slot_id, phone)     <span class="del"># оба вставляют → двойная запись</span></code></pre>
+  <div class="svg-scene">
+    <svg viewBox="0 0 860 170" xmlns="http://www.w3.org/2000/svg" style="width:860px">
+      <style>.rc{font-size:12px;fill:var(--fg)}</style>
+      <line x1="120" y1="150" x2="840" y2="150" stroke="var(--border)" stroke-width="2"/>
+      <text x="10" y="50" fill="var(--accent)" font-size="14" font-weight="700">Клиент А</text>
+      <text x="10" y="110" fill="var(--accent-3)" font-size="14" font-weight="700">Клиент Б</text>
+      <rect x="140" y="32" width="180" height="30" rx="6" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text class="rc" x="230" y="52" text-anchor="middle">свободен? — да</text>
+      <rect x="300" y="92" width="180" height="30" rx="6" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/><text class="rc" x="390" y="112" text-anchor="middle">свободен? — да</text>
+      <rect x="460" y="32" width="180" height="30" rx="6" fill="var(--card)" stroke="var(--danger)" stroke-width="2"/><text class="rc" x="550" y="52" text-anchor="middle">INSERT запись</text>
+      <rect x="640" y="92" width="180" height="30" rx="6" fill="var(--card)" stroke="var(--danger)" stroke-width="2"/><text class="rc" x="730" y="112" text-anchor="middle">INSERT запись</text>
+      <text x="840" y="166" text-anchor="end" fill="var(--fg-dim)" font-size="11">время → (миллисекунды)</text>
+    </svg>
+  </div>
+  <p><em>На ноутбуке с одним пользователем этот баг не воспроизвести. На запуске со скидкой он случится в первый же час.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Как закрыть гонку</h2>
+  <div class="trio">
+    <div class="card">
+      <h4>1 · Ограничение + ошибка</h4>
+      <pre><code style="font-size:.72rem">try:
+    await repo.insert_booking(
+        slot_id, phone)
+except IntegrityError:
+    raise SlotTaken()  # 409</code></pre>
+      <p>Самый надёжный: работает для любого кода, который пишет в БД.</p>
+    </div>
+    <div class="card">
+      <h4>2 · Условный UPDATE</h4>
+      <pre><code style="font-size:.72rem">UPDATE slots
+SET booked = true
+WHERE id = 42 AND NOT booked
+RETURNING id;
+-- 0 строк → занят</code></pre>
+      <p>«Проверка и запись» одним атомарным запросом.</p>
+    </div>
+    <div class="card">
+      <h4>3 · Блокировка строки</h4>
+      <pre><code style="font-size:.72rem">SELECT * FROM slots
+WHERE id = 42
+FOR UPDATE;</code></pre>
+      <p>Внутри транзакции: второй клиент ждёт, пока первый закончит.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Уровни изоляции в PostgreSQL</h2>
+  <table>
+    <tr><th>Уровень</th><th>Что гарантирует</th><th>Цена</th></tr>
+    <tr><td><strong>Read Committed</strong> (по умолчанию)</td><td>Видны только подтверждённые данные; каждый запрос — свежий снимок</td><td>Возможны потерянные обновления и гонки «проверил-вставил»</td></tr>
+    <tr><td><strong>Repeatable Read</strong></td><td>Вся транзакция видит один снимок</td><td>Конфликт записи → ошибка, нужен повтор</td></tr>
+    <tr><td><strong>Serializable</strong></td><td>Как будто транзакции шли строго по очереди</td><td>Ошибки сериализации → код обязан повторять транзакцию</td></tr>
+  </table>
+  <blockquote>Read Committed + ограничения + условные UPDATE закрывают большинство задач. Serializable — для сложных инвариантов между многими строками и только с циклом повторов.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Индексы подробно</h2>
+  <div class="trio">
+    <div class="card"><h4>Составной: порядок важен</h4><p><code>(master_id, starts_at)</code> работает для <code>master_id = 7</code> и <code>master_id = 7 AND starts_at &gt; now()</code>, но <strong>не</strong> для одного <code>starts_at</code>.</p></div>
+    <div class="card"><h4>Частичный и покрывающий</h4><p><code>WHERE NOT booked</code> — меньше и быстрее. <code>INCLUDE (ends_at)</code> — ответ прямо из индекса.</p></div>
+    <div class="card"><h4>GIN и GiST</h4><p>GIN — JSONB, полнотекстовый поиск, массивы. GiST — интервалы, геоданные.</p></div>
+  </div>
+  <p>Каждый индекс <strong>замедляет запись</strong> и занимает место; неиспользуемые ищите в <code>pg_stat_user_indexes</code>.</p>
+</section>
+
+<section class="slide">
+  <h2>Миграции без простоя: expand → migrate → contract</h2>
+  <p>Переименуем <code>client_phone</code> → <code>phone</code>, не останавливая сервис:</p>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent);min-width:0"><span class="flow-label">Expand</span><span class="flow-desc">новая колонка;<br>пишем в обе</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent);min-width:0"><span class="flow-label">Migrate</span><span class="flow-desc">переносим старое<br>пачками</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0"><span class="flow-label">Switch</span><span class="flow-desc">читаем из<br>новой колонки</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2);min-width:0"><span class="flow-label">Contract</span><span class="flow-desc">перестаём писать в старую,<br>потом удаляем</span></div>
+  </div>
+  <blockquote>Каждый шаг совместим и со старой, и с новой версией кода — во время деплоя работают обе.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Опасные операции в миграциях</h2>
+  <table style="font-size:.95rem">
+    <tr><th>Операция</th><th>Проблема</th><th>Как безопасно</th></tr>
+    <tr><td><code>CREATE INDEX</code></td><td>Блокирует запись на всё время построения</td><td><code>CREATE INDEX CONCURRENTLY</code></td></tr>
+    <tr><td><code>ALTER COLUMN ... TYPE</code></td><td>Переписывает таблицу под блокировкой</td><td>Новая колонка + перенос данных</td></tr>
+    <tr><td><code>SET NOT NULL</code> на большой таблице</td><td>Полное сканирование под блокировкой</td><td><code>CHECK (...) NOT VALID</code>, потом <code>VALIDATE</code></td></tr>
+    <tr><td>Любой <code>ALTER TABLE</code></td><td>Ждёт блокировку и копит очередь запросов за собой</td><td><code>SET lock_timeout = '3s'</code> и повтор</td></tr>
+  </table>
+  <p><em>Миграцию на большой таблице сначала прогоняют на копии продакшен-данных.</em></p>
+</section>
+
+<section class="slide">
+  <h2>JSONB: гибкость внутри PostgreSQL</h2>
+  <pre><code style="font-size:.88rem">ALTER TABLE masters ADD COLUMN settings jsonb NOT NULL DEFAULT '{}';
+SELECT * FROM masters WHERE settings @&gt; '{"reminders": {"sms": true}}';
+CREATE INDEX ON masters USING gin (settings);</code></pre>
+  <div class="compare">
+    <div class="card after"><h4>Хорошо</h4><p>Настройки, ответы внешних API, редкие необязательные атрибуты.</p></div>
+    <div class="card before"><h4>Плохо</h4><p>То, по чему ищете, сортируете и связываете таблицы, — это колонки.</p></div>
+  </div>
+  <p>JSONB часто закрывает потребность «нам нужна MongoDB».</p>
+</section>
+
+<section class="slide">
+  <h2>Выбор хранилища</h2>
+  <table style="font-size:.92rem">
+    <tr><th>Данные</th><th>Хранилище</th></tr>
+    <tr><td>Бизнес-данные, связи, транзакции</td><td><strong>PostgreSQL</strong> — по умолчанию</td></tr>
+    <tr><td>Кэш, сессии, очереди, счётчики, лимиты</td><td><strong>Redis</strong> / Valkey</td></tr>
+    <tr><td>Документы с сильно разной структурой</td><td>MongoDB — или JSONB в PostgreSQL</td></tr>
+    <tr><td>Аналитика, события, логи, миллиарды строк</td><td><strong>ClickHouse</strong></td></tr>
+    <tr><td>Полнотекстовый поиск с морфологией</td><td>OpenSearch / Elasticsearch, Meilisearch</td></tr>
+    <tr><td>Файлы, картинки, бэкапы</td><td><strong>Объектное хранилище (S3)</strong> — не БД</td></tr>
+    <tr><td>Векторы для семантического поиска</td><td><strong>pgvector</strong>, Qdrant (Модуль 7)</td></tr>
+  </table>
+  <p><em>Каждое новое хранилище — ещё одна система, которую нужно бэкапить, обновлять и мониторить.</em></p>
+</section>
+
+<section class="slide">
+  <h2>OLTP vs OLAP</h2>
+  <div class="compare">
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">OLTP · PostgreSQL</h4>
+      <p>«Записать клиента на слот». Много коротких запросов по ключу. Хранение по строкам.</p>
+    </div>
+    <div class="card" style="border-color:rgba(255,122,182,.4)">
+      <h4 style="color:var(--accent-3)">OLAP · ClickHouse</h4>
+      <p>«Конверсия по мастерам за квартал». Мало тяжёлых запросов по всей таблице. Хранение по колонкам.</p>
+    </div>
+  </div>
+  <blockquote>Тяжёлый аналитический запрос к продакшен-БД замедляет запись клиентов. Аналитику — на реплику или в колоночное хранилище.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Порядок масштабирования</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 980 230" xmlns="http://www.w3.org/2000/svg" style="width:980px">
+      <style>.st-t{font-size:13px;font-weight:700;text-anchor:middle}.st-d{font-size:10.5px;fill:var(--fg-dim);text-anchor:middle}</style>
+      <g>
+        <rect x="0" y="180" width="134" height="40" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/><text class="st-t" x="67" y="205" fill="var(--accent-2)">Запросы, индексы</text>
+        <rect x="140" y="155" width="134" height="65" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/><text class="st-t" x="207" y="190" fill="var(--accent-2)">Вертикально</text>
+        <rect x="280" y="130" width="134" height="90" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text class="st-t" x="347" y="178" fill="var(--accent)">Пул соединений</text>
+        <rect x="420" y="105" width="134" height="115" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text class="st-t" x="487" y="160" fill="var(--accent)">Реплики</text><text class="st-d" x="487" y="178">задержка репликации!</text>
+        <rect x="560" y="80" width="134" height="140" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text class="st-t" x="627" y="150" fill="var(--accent)">Кэш</text>
+        <rect x="700" y="55" width="134" height="165" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/><text class="st-t" x="767" y="140" fill="var(--accent-3)">Партиции</text>
+        <rect x="840" y="20" width="134" height="200" fill="var(--card)" stroke="var(--danger)" stroke-width="2"/><text class="st-t" x="907" y="122" fill="var(--danger)">Шардирование</text><text class="st-d" x="907" y="140">последнее средство</text>
+      </g>
+      <text x="0" y="14" fill="var(--fg-dim)" font-size="12">выше ступень — дороже поддержка →</text>
+    </svg>
+  </div>
+  <p>Чаще всего хватает первой ступени — <code>EXPLAIN ANALYZE</code> из Модуля 6. Не прыгайте через ступени.</p>
+</section>
+
+<section class="slide">
+  <h2>Бэкапы и восстановление на момент времени</h2>
+  <div class="trio">
+    <div class="card"><h4>pg_dump</h4><p>Логическая копия. Просто, но медленно восстанавливается на больших БД.</p></div>
+    <div class="card"><h4>Физический бэкап + WAL</h4><p>pgBackRest, WAL-G → <strong>PITR</strong>: состояние на 14:02:59, за секунду до ошибочного <code>DELETE</code>.</p></div>
+    <div class="card"><h4>Управляемая БД</h4><p>Облако делает это само — проверьте, на сколько дней назад.</p></div>
+  </div>
+  <p>Регулярное <strong>тестовое восстановление</strong> — часть процесса (Модуль 11).</p>
+</section>
+
+<section class="slide">
+  <h2>БД и ИИ-агенты</h2>
+  <ol class="trace-log">
+    <li><span class="tag obs">Доступ</span> роль только на чтение и копия данных без персональной информации</li>
+    <li><span class="tag plan">Миграции</span> написанные агентом — через ревью и прогон на копии данных</li>
+    <li><span class="tag danger">Ловушка</span> агенты «упрощают» схему, удаляя неудобное ограничение — а ограничение и есть защита</li>
+    <li><span class="tag danger">Никогда</span> права на запись в продакшен-БД</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol>
+    <li>Пересоберите схему «Slot»: внешние ключи, <code>CHECK</code>, <code>EXCLUDE</code>, частичный уникальный индекс</li>
+    <li>Тест: 50 одновременных записей на один слот → проходит <strong>ровно одна</strong>, остальные получают 409</li>
+    <li>Миграция без простоя во время нагрузочного теста — ноль упавших запросов</li>
+    <li>Проверьте индексы через <code>EXPLAIN ANALYZE</code></li>
+    <li><strong>С агентом:</strong> схема по ER-диаграмме и тест на конкурентность; каждое ограничение проверьте, попытавшись его нарушить</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Миграции схемы в репозитории</li>
+    <li>Зелёный тест на конкурентность</li>
+    <li>Лог миграции без простоя: ноль ошибок во время нагрузки</li>
+    <li>ADR о выборе хранилищ для «Slot»</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 06</p>
+  <h2>Далее: Производительность бэкенда</h2>
+  <p>Бизнес-правила — в ограничениях БД. Гонки закрывают ограничения, условные UPDATE и блокировки, а не проверки в коде. Миграции — expand → migrate → contract. PostgreSQL по умолчанию.</p>
+  <p><em>Дальше измеряем и находим настоящее узкое место.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

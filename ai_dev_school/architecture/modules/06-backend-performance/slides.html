@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 6 — Производительность бэкенда</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 6</p>
+  <h1>Производительность бэкенда</h1>
+  <h2>Быстро по-настоящему: измеряем, находим узкое место, чиним — и снова измеряем</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Метрики: задержка, пропускная способность, перцентили</li>
+    <li>Куда на самом деле уходит время; профилирование</li>
+    <li>База данных: индексы, N+1, пул соединений</li>
+    <li>Кэширование, очереди, масштабирование</li>
+    <li>Когда язык действительно важен</li>
+    <li>Нагрузочное тестирование и честные бенчмарки</li>
+    <li>Лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Правильно измерять производительность и читать цифры</li>
+    <li>Находить реальное узкое место, а не гадать</li>
+    <li>Знать стандартные решения: индексы, кэш, очереди, масштабирование</li>
+    <li>Понимать, когда переписывание на «быстрый язык» действительно помогает</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="quote">
+  <blockquote>Не оптимизируйте то, что не измерили.</blockquote>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Измерить</span><span class="flow-desc">нагрузка, профиль</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Найти</span><span class="flow-desc">одно, самое большое</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Исправить</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Измерить снова</span><span class="flow-desc">подтвердить цифрами</span></div>
+  </div>
+  <p class="flow-repeat">↻ Агент тоже: сначала гипотеза и данные, потом код</p>
+</section>
+
+<section class="slide">
+  <h2>Задержка и пропускная способность</h2>
+  <div class="trio" style="grid-template-columns: 1fr 1fr;">
+    <div class="card"><h4>Задержка (latency)</h4><p>Сколько ждёт <strong>один</strong> пользователь: миллисекунды на запрос.</p></div>
+    <div class="card"><h4>Пропускная способность (throughput)</h4><p>Сколько запросов в секунду (<strong>RPS</strong>) выдерживает система.</p></div>
+  </div>
+  <ul>
+    <li>Связаны, но не одно и то же: можно обслуживать 10 000 RPS, но каждый за 2 секунды</li>
+    <li>Под нагрузкой задержка растёт: запросы начинают стоять в очереди</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Почему среднее врёт</h2>
+  <p>100 запросов: 98 по 50 мс и 2 по 5 000 мс</p>
+  <div class="svg-scene">
+    <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" style="width:820px">
+      <line x1="40" y1="170" x2="800" y2="170" stroke="var(--border)" stroke-width="2"/>
+      <g>
+        <rect x="70" y="155" width="110" height="15" fill="var(--accent-2)"/>
+        <text x="125" y="145" text-anchor="middle" fill="var(--accent-2)" font-size="18" font-weight="700">50 мс</text>
+        <text x="125" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">p50</text>
+        <rect x="250" y="155" width="110" height="15" fill="var(--accent-2)"/>
+        <text x="305" y="145" text-anchor="middle" fill="var(--accent-2)" font-size="18" font-weight="700">50 мс</text>
+        <text x="305" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">p95</text>
+        <rect x="430" y="140" width="110" height="30" fill="var(--fg-dim)"/>
+        <text x="485" y="130" text-anchor="middle" fill="var(--fg-dim)" font-size="18" font-weight="700">149 мс</text>
+        <text x="485" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">среднее: «всё хорошо»</text>
+        <rect x="610" y="20" width="110" height="150" fill="var(--danger)"/>
+        <text x="665" y="12" text-anchor="middle" fill="var(--danger)" font-size="18" font-weight="700">5 000 мс</text>
+        <text x="665" y="192" text-anchor="middle" fill="var(--fg-dim)" font-size="13">p99</text>
+      </g>
+    </svg>
+  </div>
+  <blockquote>Смотрим <strong>p95 и p99</strong>. У активного пользователя за сессию десятки запросов — он почти наверняка попадёт в хвост.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Куда на самом деле уходит время</h2>
+  <p>Типичный запрос к API «Slot», 482 мс:</p>
+  <div class="svg-scene">
+    <svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" style="width:960px">
+      <rect x="0" y="20" width="4" height="44" fill="var(--accent-3)"/>
+      <rect x="4" y="20" width="358" height="44" fill="var(--accent)"/>
+      <rect x="362" y="20" width="598" height="44" fill="var(--danger)" opacity=".85"/>
+      <text x="183" y="48" text-anchor="middle" fill="var(--bg)" font-size="16" font-weight="700">БД без индекса · 180 мс</text>
+      <text x="660" y="48" text-anchor="middle" fill="var(--bg)" font-size="16" font-weight="700">Внешний API (Telegram) · 300 мс</text>
+      <path d="M2,68 L2,90" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="8" y="100" fill="var(--accent-3)" font-size="14">разбор + логика на Python + сериализация · 1,7 мс</text>
+    </svg>
+  </div>
+  <ul>
+    <li>Язык — <strong>1,7 мс</strong>. БД и сеть — <strong>480 мс</strong></li>
+    <li>Переписывание на Rust сэкономит ~1 мс; индекс и очередь — почти всё остальное</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>I/O-bound vs CPU-bound</h2>
+  <table>
+    <tr><th></th><th>I/O-bound</th><th>CPU-bound</th></tr>
+    <tr><td>Где время</td><td>Ждём БД, сеть, диск</td><td>Считаем: картинки, отчёты, шифрование, ML</td></tr>
+    <tr><td>Доля веб-API</td><td>Подавляющее большинство</td><td>Редкие эндпоинты</td></tr>
+    <tr><td>Что помогает</td><td>Async, кэш, индексы, очереди</td><td>Другой алгоритм, процессы, Go/Rust, GPU</td></tr>
+  </table>
+  <blockquote>Сначала определите, какой у вас случай, — решения противоположные.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Профилирование и трассировка</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" style="width:900px">
+      <style>.fg{font-size:12px;fill:var(--bg);font-weight:700}</style>
+      <rect x="0" y="90" width="900" height="26" fill="var(--accent)"/><text class="fg" x="10" y="108">handle_request · 100%</text>
+      <rect x="0" y="62" width="620" height="26" fill="var(--danger)" opacity=".85"/><text class="fg" x="10" y="80">db.execute · 69%</text>
+      <rect x="622" y="62" width="200" height="26" fill="var(--accent-3)"/><text class="fg" x="630" y="80">http_post · 22%</text>
+      <rect x="824" y="62" width="76" height="26" fill="var(--accent-2)"/><text class="fg" x="830" y="80">json</text>
+      <rect x="0" y="34" width="600" height="26" fill="var(--danger)" opacity=".6"/><text class="fg" x="10" y="52">seq_scan slots · 67%  ← самая широкая полоса</text>
+      <text x="900" y="20" text-anchor="end" fill="var(--fg-dim)" font-size="12">flame graph: ширина = доля времени</text>
+    </svg>
+  </div>
+  <ul>
+    <li><strong>Профайлер:</strong> py-spy, cProfile (Python), pprof (Go)</li>
+    <li><strong>Трассировка (OpenTelemetry):</strong> путь запроса через сервисы и БД с таймингами</li>
+    <li><strong>APM</strong> (Grafana, Sentry, Datadog) и лог медленных запросов PostgreSQL</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>БД: индексы и EXPLAIN</h2>
+  <pre><code style="font-size:.85rem">EXPLAIN ANALYZE
+SELECT * FROM slots WHERE master_id = 7 AND starts_at &gt; now() AND NOT booked;
+
+<span class="del">-- без индекса:
+Seq Scan on slots  (actual time=0.02..182.4 rows=12)
+  Rows Removed by Filter: 1999988</span>
+
+<span class="add">-- после CREATE INDEX ON slots (master_id, starts_at) WHERE NOT booked:
+Index Scan using slots_master_starts_idx  (actual time=0.03..0.09 rows=12)</span></code></pre>
+  <p><strong>Seq Scan</strong> по большой таблице в горячем запросе — первый подозреваемый. 182 мс → 0,09 мс.</p>
+</section>
+
+<section class="slide">
+  <h2>Проблема N+1</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>101 запрос</h4>
+      <pre><code style="font-size:.78rem">masters = session.query(Master).all()
+for m in masters:
+    # +1 запрос на каждого мастера
+    print(m.name, len(m.slots))</code></pre>
+    </div>
+    <div class="card after">
+      <h4>2 запроса</h4>
+      <pre><code style="font-size:.78rem">masters = (session.query(Master)
+    .options(selectinload(Master.slots))
+    .all())</code></pre>
+    </div>
+  </div>
+  <p>Каждый запрос быстрый, вместе — секунда. ORM скрывает запросы — включайте логирование SQL в разработке.</p>
+</section>
+
+<section class="slide">
+  <h2>Пул соединений и реплики</h2>
+  <div class="trio">
+    <div class="card"><h4>Соединение дорогое</h4><p>Открыть соединение с PostgreSQL — десятки мс и память на сервере БД.</p></div>
+    <div class="card"><h4>Пул соединений</h4><p>Переиспользует открытые соединения: встроен в SQLAlchemy, pgx; снаружи — PgBouncer.</p></div>
+    <div class="card"><h4>Реплики на чтение</h4><p>Копии БД для SELECT, когда основная не справляется.</p></div>
+  </div>
+  <p><em>Слишком много соединений — БД тратит память на них вместо данных.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Кэширование: уровни</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Браузер</span><span class="flow-desc">Cache-Control, ETag</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">CDN</span><span class="flow-desc">статика, публичные страницы</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Приложение</span><span class="flow-desc">Redis, Memcached</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">БД</span><span class="flow-desc">буферы в памяти</span></div>
+  </div>
+  <p>Чем ближе к пользователю закэшировано, тем быстрее ответ и тем меньше нагрузка на всё, что дальше.</p>
+</section>
+
+<section class="slide">
+  <h2>Кэш в приложении: cache-aside</h2>
+  <pre><code style="font-size:.88rem">async def free_slots(master_id: int):
+    key = f"free_slots:{master_id}"
+    if cached := await redis.get(key):                 <span style="color:var(--accent-2)"># попали в кэш</span>
+        return json.loads(cached)
+    slots = await repo.free_slots(master_id)           <span style="color:var(--fg-dim)"># промах → БД</span>
+    await redis.set(key, json.dumps(slots), ex=30)     <span style="color:var(--accent)"># TTL 30 секунд</span>
+    return slots
+
+<span style="color:var(--fg-dim)"># при записи на слот:</span>
+await redis.delete(f"free_slots:{master_id}")          <span style="color:var(--accent-3)"># инвалидация</span></code></pre>
+  <p>Две сложности: <strong>инвалидация</strong> (когда данные устарели) и <strong>TTL</strong> (сколько можно показывать старое).</p>
+</section>
+
+<section class="slide">
+  <h2>Очереди и фоновые задачи</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 860 150" xmlns="http://www.w3.org/2000/svg" style="width:860px">
+      <defs><marker id="d0" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect x="10" y="45" width="120" height="56" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="70" y="78" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">Клиент</text>
+      <rect x="200" y="45" width="120" height="56" rx="10" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/>
+      <text x="260" y="78" text-anchor="middle" fill="var(--accent-2)" font-size="15" font-weight="700">API</text>
+      <g fill="var(--card)" stroke="var(--accent-3)" stroke-width="2">
+        <rect x="400" y="55" width="34" height="36" rx="4"/><rect x="440" y="55" width="34" height="36" rx="4"/><rect x="480" y="55" width="34" height="36" rx="4"/>
+      </g>
+      <text x="457" y="118" text-anchor="middle" fill="var(--accent-3)" font-size="13" font-weight="700">очередь</text>
+      <rect x="590" y="45" width="120" height="56" rx="10" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="650" y="78" text-anchor="middle" fill="var(--accent-3)" font-size="15" font-weight="700">Воркер</text>
+      <rect x="760" y="45" width="95" height="56" rx="10" fill="var(--card)" stroke="var(--fg-dim)" stroke-width="2"/>
+      <text x="807" y="78" text-anchor="middle" fill="var(--fg-dim)" font-size="14" font-weight="700">Telegram</text>
+      <line x1="130" y1="62" x2="196" y2="62" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#d0)"/>
+      <line x1="196" y1="88" x2="134" y2="88" stroke="var(--accent-2)" stroke-width="2" marker-end="url(#d0)"/>
+      <text x="165" y="115" text-anchor="middle" fill="var(--accent-2)" font-size="12">201 сразу</text>
+      <line x1="320" y1="73" x2="396" y2="73" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#d0)"/>
+      <line x1="514" y1="73" x2="586" y2="73" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#d0)"/>
+      <line x1="710" y1="73" x2="756" y2="73" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#d0)"/>
+      <path d="M650,45 C650,10 700,10 700,40" fill="none" stroke="var(--fg-dim)" stroke-dasharray="4 3" marker-end="url(#d0)"/>
+      <text x="690" y="12" fill="var(--fg-dim)" font-size="11">повтор при ошибке</text>
+    </svg>
+  </div>
+  <ul>
+    <li>Не делайте внутри запроса то, что пользователь не ждёт: уведомления, отчёты, картинки, долгие вызовы LLM</li>
+    <li>Celery, RQ, Arq (Python) · RabbitMQ, Redis · Kafka, NATS — для потоков событий</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Масштабирование</h2>
+  <div class="compare">
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">Вертикальное</h4>
+      <p>Больше CPU и памяти на одном сервере. Очень просто — сменить тариф. Предел — самый большой сервер.</p>
+    </div>
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">Горизонтальное</h4>
+      <p>Больше копий приложения за балансировщиком. Почти без предела (кроме БД). Требует stateless-кода.</p>
+    </div>
+  </div>
+  <blockquote><strong>Stateless:</strong> приложение не хранит ничего между запросами в памяти процесса. Сессии, файлы, кэш — в Redis, S3, БД.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Когда язык действительно важен</h2>
+  <ul>
+    <li>CPU-задачи: изображения и видео, криптография, парсинг больших файлов, симуляции</li>
+    <li>Огромный RPS при тонкой логике: прокси, шлюзы, биржи</li>
+    <li>Жёсткие требования к памяти и задержке: p99 &lt; 5 мс</li>
+  </ul>
+  <div class="trio">
+    <div class="card"><h4>Отдельный сервис</h4><p>Горячий участок — в сервис на Go или Rust.</p></div>
+    <div class="card"><h4>Расширение</h4><p>Модуль на Rust для Python через PyO3.</p></div>
+    <div class="card"><h4>Готовые библиотеки</h4><p>NumPy, Polars — нативный код уже внутри.</p></div>
+  </div>
+  <p><em>Переписывают горячий участок, а не всё приложение.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Нагрузочное тестирование</h2>
+  <div class="compare">
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">k6: load.js</h4>
+      <pre><code style="font-size:.75rem">import http from 'k6/http';
+export const options = {
+  vus: 50, duration: '1m' };
+export default function () {
+  http.get('https://staging.slot
+    .example/api/masters/7/slots');
+}</code></pre>
+    </div>
+    <div class="card" style="border-color:rgba(124,156,255,.4)">
+      <h4 style="color:var(--accent)">Результат</h4>
+      <pre><code style="font-size:.75rem">http_req_duration:
+  avg=212ms
+  p(95)=480ms
+  <span class="del">p(99)=1.2s</span>
+http_reqs: 13 820  230/s</code></pre>
+    </div>
+  </div>
+  <p>Альтернатива на Python — <strong>Locust</strong>.</p>
+</section>
+
+<section class="slide">
+  <h2>Честные бенчмарки</h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">Прогрев</span> первые запросы медленнее: кэши, JIT, пул соединений</li>
+    <li><span class="tag plan">Данные</span> 10 строк в БД быстрые всегда — проверяйте на миллионах</li>
+    <li><span class="tag plan">Железо</span> одинаковое железо и одинаковые настройки</li>
+    <li><span class="tag plan">Сценарий</span> реалистичный, не только GET одной страницы</li>
+    <li><span class="tag danger">Ловушка</span> генератор нагрузки на том же сервере, что и приложение</li>
+    <li><span class="tag obs">Метрики</span> сравниваем p95/p99, а не среднее</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol>
+    <li>Заполните БД «Slot» реалистичными данными: 1 000 мастеров, 2 млн слотов</li>
+    <li>Нагрузочный тест k6 или Locust: запишите p95 и RPS</li>
+    <li>Найдите узкое место: <code>EXPLAIN ANALYZE</code>, профайлер, логи SQL</li>
+    <li>Исправьте: индекс, кэш свободных слотов, уведомления в очередь; измерьте снова</li>
+    <li><strong>С агентом:</strong> дайте агенту отчёт теста и вывод <code>EXPLAIN</code>; попросите сначала гипотезу, потом код; подтвердите исправление цифрами</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Отчёт «до/после»: p50, p95, p99, RPS</li>
+    <li>Абзац: что было узким местом и как вы это доказали</li>
+    <li>Скрипт нагрузочного теста в репозитории</li>
+    <li>Где агент угадал, а где предложил оптимизацию без данных</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 07</p>
+  <h2>Далее: ИИ внутри приложения</h2>
+  <p>Измерить → найти → исправить → измерить снова. Смотрим p95/p99, а не среднее. Обычно виноваты БД и сеть. Горизонтальное масштабирование требует stateless-кода.</p>
+  <p><em>Дальше встраиваем в «Slot» LLM — самую медленную и дорогую зависимость из всех.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

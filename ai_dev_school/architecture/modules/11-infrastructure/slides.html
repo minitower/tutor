@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 11 — Инфраструктура</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 11</p>
+  <h1>Инфраструктура</h1>
+  <h2>Для первого проекта: VPS, DNS, HTTPS, облако, CI/CD, бэкапы, мониторинг — «Slot» в интернете</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Варианты хостинга и что выбрать для первого проекта</li>
+    <li>Сервер с нуля: SSH, пользователь, файрвол</li>
+    <li>Домены и DNS; HTTPS и reverse proxy</li>
+    <li>Строительные блоки облака</li>
+    <li>CI/CD, окружения, секреты</li>
+    <li>Бэкапы и наблюдаемость</li>
+    <li>Инфраструктура как код и деньги; лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Выбрать модель хостинга под проект и оценить стоимость</li>
+    <li>Вывести приложение в интернет на своём домене с HTTPS</li>
+    <li>Сделать деплой, бэкапы и мониторинг автоматическими</li>
+    <li>Понимать, из каких блоков строится облачная инфраструктура</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Варианты хостинга</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" style="width:900px">
+      <defs><linearGradient id="h0" x1="0" x2="1"><stop offset="0" stop-color="var(--accent-2)"/><stop offset="1" stop-color="var(--accent-3)"/></linearGradient></defs>
+      <rect x="20" y="52" width="860" height="10" rx="5" fill="url(#h0)"/>
+      <g font-size="14" font-weight="700" text-anchor="middle">
+        <circle cx="70" cy="57" r="9" fill="var(--accent-2)"/><text x="70" y="38" fill="var(--accent-2)">Serverless</text>
+        <circle cx="260" cy="57" r="9" fill="var(--accent-2)"/><text x="260" y="38" fill="var(--accent-2)">PaaS</text>
+        <circle cx="450" cy="57" r="9" fill="var(--accent)"/><text x="450" y="38" fill="var(--accent)">VPS</text>
+        <circle cx="640" cy="57" r="9" fill="var(--accent-3)"/><text x="640" y="38" fill="var(--accent-3)">IaaS-облако</text>
+        <circle cx="830" cy="57" r="9" fill="var(--accent-3)"/><text x="830" y="38" fill="var(--accent-3)">Своё железо</text>
+      </g>
+      <g font-size="11" fill="var(--fg-dim)" text-anchor="middle">
+        <text x="70" y="85">код функций</text><text x="260" y="85">только код</text><text x="450" y="85">ОС, безопасность</text><text x="640" y="85">сети, ВМ, БД, IAM</text><text x="830" y="85">всё, вплоть до дисков</text>
+      </g>
+      <text x="20" y="112" fill="var(--fg-dim)" font-size="12">← меньше работы, меньше контроля</text>
+      <text x="880" y="112" fill="var(--fg-dim)" font-size="12" text-anchor="end">больше контроля, больше работы →</text>
+    </svg>
+  </div>
+  <table style="font-size:.95rem">
+    <tr><th>Вариант</th><th>Цена старта</th><th>Ваша работа</th></tr>
+    <tr><td><strong>PaaS</strong> (Vercel, Render, Fly.io, Railway)</td><td>Бесплатно–20 $/мес</td><td>Только код</td></tr>
+    <tr><td><strong>VPS</strong></td><td>~5–10 $/мес</td><td>ОС, безопасность, обновления</td></tr>
+    <tr><td><strong>IaaS-облако</strong> (Yandex Cloud, Selectel, AWS, GCP)</td><td>От единиц $</td><td>Много: сети, IAM, сервисы</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Что выбрать для первого проекта</h2>
+  <table>
+    <tr><th>Ситуация</th><th>Выбор</th></tr>
+    <tr><td>Фронтенд-статика / Next.js</td><td>PaaS: Vercel, Netlify, Cloudflare Pages — бесплатно и быстро</td></tr>
+    <tr><td>Всё приложение в Compose</td><td><strong>Один VPS</strong> — дёшево, понятно, всему научит</td></tr>
+    <tr><td>Не хотите администрировать</td><td>PaaS для контейнеров: Render, Fly.io, Railway</td></tr>
+    <tr><td>Растёте, нужны управляемые сервисы</td><td>Облако: Yandex Cloud, Selectel, AWS, GCP</td></tr>
+  </table>
+  <blockquote>Для «Slot» в курсе: <strong>VPS + Docker Compose</strong> — чтобы увидеть каждый слой своими руками.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Сервер с нуля: первые 15 минут</h2>
+  <pre><code style="font-size:.85rem;line-height:1.35"><span style="color:var(--fg-dim)"># 1. Вход по SSH-ключу, а не паролю</span>
+ssh-copy-id root@203.0.113.10
+<span style="color:var(--fg-dim)"># 2. Отдельный пользователь</span>
+adduser deploy &amp;&amp; usermod -aG sudo,docker deploy
+<span style="color:var(--fg-dim)"># 3. Запретить вход root и по паролю (/etc/ssh/sshd_config)</span>
+PermitRootLogin no
+PasswordAuthentication no
+<span style="color:var(--fg-dim)"># 4. Файрвол: только SSH, HTTP, HTTPS</span>
+ufw allow OpenSSH &amp;&amp; ufw allow 80,443/tcp &amp;&amp; ufw enable
+<span style="color:var(--fg-dim)"># 5. Автоматические обновления безопасности</span>
+apt install unattended-upgrades fail2ban</code></pre>
+  <p><em>Сервер с открытым SSH по паролю начинают перебирать боты через минуты после создания.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Домены и DNS</h2>
+  <p>Домен покупают у <strong>регистратора</strong> (Reg.ru, Namecheap, Cloudflare); <strong>NS-записи</strong> указывают, какие DNS-серверы отвечают за домен.</p>
+  <table>
+    <tr><th>Запись</th><th>Пример</th><th>Зачем</th></tr>
+    <tr><td><strong>A / AAAA</strong></td><td><code>slot.example → 203.0.113.10</code></td><td>Домен → IPv4 / IPv6</td></tr>
+    <tr><td><strong>CNAME</strong></td><td><code>www → slot.example</code></td><td>Псевдоним другого имени</td></tr>
+    <tr><td><strong>MX</strong></td><td><code>→ mx.yandex.net</code></td><td>Куда доставлять почту</td></tr>
+    <tr><td><strong>TXT</strong></td><td><code>v=spf1 …</code>, верификация</td><td>SPF/DKIM, подтверждение владения</td></tr>
+  </table>
+  <p><strong>TTL</strong> — сколько секунд ответ кэшируется. Перед переездом уменьшите TTL заранее.</p>
+</section>
+
+<section class="slide">
+  <h2>Как работает разрешение имени</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg" style="width:900px">
+      <style>.dn{fill:var(--card);stroke-width:2}.dt{font-size:14px;font-weight:700;text-anchor:middle}.dl{font-size:11px;fill:var(--fg)}</style>
+      <defs><marker id="h1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect class="dn" x="10" y="105" width="120" height="50" rx="10" stroke="var(--accent)"/><text class="dt" x="70" y="135" fill="var(--accent)">Браузер</text>
+      <rect class="dn" x="250" y="100" width="160" height="60" rx="10" stroke="var(--accent-3)"/><text class="dt" x="330" y="126" fill="var(--accent-3)">Резолвер</text><text x="330" y="145" text-anchor="middle" fill="var(--fg-dim)" font-size="11">1.1.1.1 · 77.88.8.8</text>
+      <rect class="dn" x="620" y="10" width="200" height="50" rx="10" stroke="var(--fg-dim)"/><text class="dt" x="720" y="40" fill="var(--fg)">Корневой сервер</text>
+      <rect class="dn" x="620" y="105" width="200" height="50" rx="10" stroke="var(--fg-dim)"/><text class="dt" x="720" y="135" fill="var(--fg)">Сервер зоны .example</text>
+      <rect class="dn" x="620" y="200" width="200" height="50" rx="10" stroke="var(--accent-2)"/><text class="dt" x="720" y="230" fill="var(--accent-2)">Ваш DNS-сервер</text>
+      <line x1="130" y1="122" x2="246" y2="122" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h1)"/>
+      <text class="dl" x="140" y="114">1 · slot.example?</text>
+      <line x1="246" y1="142" x2="134" y2="142" stroke="var(--accent-2)" stroke-width="2" marker-end="url(#h1)"/>
+      <text x="140" y="162" fill="var(--accent-2)" font-size="11">5 · 203.0.113.10 (кэш на TTL)</text>
+      <line x1="410" y1="110" x2="616" y2="38" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h1)"/>
+      <text class="dl" x="440" y="60">2 · кто отвечает за .example?</text>
+      <line x1="410" y1="130" x2="616" y2="130" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h1)"/>
+      <text class="dl" x="430" y="122">3 · кто отвечает за slot.example?</text>
+      <line x1="410" y1="150" x2="616" y2="222" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h1)"/>
+      <text class="dl" x="440" y="210">4 · A-запись slot.example?</text>
+    </svg>
+  </div>
+  <p>Проверка: <code>dig slot.example</code> или <code>nslookup slot.example</code></p>
+</section>
+
+<section class="slide">
+  <h2>HTTPS: почему обязателен</h2>
+  <ol class="trace-log">
+    <li><span class="tag danger">Безопасность</span> без TLS трафик видит и может подменить любой в сети — Wi-Fi в кафе, провайдер</li>
+    <li><span class="tag danger">Доверие</span> браузеры помечают HTTP-сайты как «Не защищено»</li>
+    <li><span class="tag danger">SEO</span> поисковики понижают HTTP-сайты</li>
+    <li><span class="tag danger">Функции</span> геолокация, PWA, service workers работают только по HTTPS</li>
+  </ol>
+  <blockquote><strong>Let's Encrypt</strong> — бесплатные сертификаты на 90 дней с автоматическим продлением (certbot, Caddy, cert-manager).</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Reverse proxy: один вход, много сервисов</h2>
+  <div class="compare" style="grid-template-columns: 1fr 1fr; align-items:start">
+    <pre style="margin:0"><code style="font-size:.85rem"><span style="color:var(--fg-dim)"># Caddyfile — HTTPS выпустится сам</span>
+slot.example {
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+    handle {
+        reverse_proxy web:3000
+    }
+}</code></pre>
+    <table style="font-size:.95rem">
+      <tr><th>Прокси</th><th>Чем хорош</th></tr>
+      <tr><td><strong>Caddy</strong></td><td>Автоматический HTTPS, короткий конфиг</td></tr>
+      <tr><td><strong>Nginx</strong></td><td>Классика, максимум возможностей и примеров</td></tr>
+      <tr><td><strong>Traefik</strong></td><td>Сам находит контейнеры по меткам Docker</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Строительные блоки облака</h2>
+  <table style="font-size:.95rem">
+    <tr><th>Блок</th><th>Что это</th><th>Примеры</th></tr>
+    <tr><td><strong>VPC, подсети</strong></td><td>Ваша изолированная сеть</td><td>Все облака</td></tr>
+    <tr><td><strong>ВМ</strong></td><td>Виртуальные серверы</td><td>Compute Cloud, EC2</td></tr>
+    <tr><td><strong>Управляемая БД</strong></td><td>PostgreSQL с бэкапами и репликами «под ключ»</td><td>Managed PostgreSQL, RDS</td></tr>
+    <tr><td><strong>Объектное хранилище</strong></td><td>Файлы по HTTP, S3-совместимое API</td><td>Object Storage, S3</td></tr>
+    <tr><td><strong>CDN</strong></td><td>Кэш статики по миру</td><td>Cloud CDN, CloudFront</td></tr>
+    <tr><td><strong>Балансировщик</strong></td><td>Распределение трафика</td><td>ALB, Network LB</td></tr>
+    <tr><td><strong>IAM</strong></td><td>Кто и что может делать в облаке</td><td>Сервисные аккаунты, роли</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Схема «Slot», когда проект вырос</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" style="width:1000px">
+      <style>.cb{fill:var(--card);stroke-width:2}.ct{font-size:13px;font-weight:700;text-anchor:middle}</style>
+      <defs><marker id="h2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect class="cb" x="10" y="125" width="110" height="46" rx="10" stroke="var(--accent)"/><text class="ct" x="65" y="153" fill="var(--accent)">Пользователь</text>
+      <rect class="cb" x="160" y="40" width="110" height="46" rx="10" stroke="var(--accent-3)"/><text class="ct" x="215" y="68" fill="var(--accent-3)">CDN</text>
+      <rect class="cb" x="160" y="200" width="120" height="46" rx="10" stroke="var(--accent-3)"/><text class="ct" x="220" y="228" fill="var(--accent-3)">Балансировщик</text>
+      <rect x="320" y="20" width="670" height="270" rx="14" fill="none" stroke="var(--fg-dim)" stroke-dasharray="6 5"/>
+      <text x="980" y="282" text-anchor="end" fill="var(--fg-dim)" font-size="12">VPC · приватная подсеть, без публичных IP</text>
+      <rect class="cb" x="350" y="160" width="130" height="40" rx="8" stroke="var(--accent-2)"/><text class="ct" x="415" y="185" fill="var(--accent-2)">API ВМ 1</text>
+      <rect class="cb" x="350" y="215" width="130" height="40" rx="8" stroke="var(--accent-2)"/><text class="ct" x="415" y="240" fill="var(--accent-2)">API ВМ 2</text>
+      <rect class="cb" x="600" y="50" width="190" height="46" rx="10" stroke="var(--accent)"/><text class="ct" x="695" y="78" fill="var(--accent)">Managed PostgreSQL</text>
+      <rect class="cb" x="600" y="130" width="190" height="46" rx="10" stroke="var(--accent)"/><text class="ct" x="695" y="158" fill="var(--accent)">Managed Redis</text>
+      <rect class="cb" x="600" y="210" width="190" height="46" rx="10" stroke="var(--accent)"/><text class="ct" x="695" y="238" fill="var(--accent)">Object Storage</text>
+      <text x="880" y="70" text-anchor="middle" fill="var(--fg-dim)" font-size="11">бэкапы, реплики</text>
+      <text x="880" y="235" text-anchor="middle" fill="var(--fg-dim)" font-size="11">файлы, бэкапы</text>
+      <line x1="120" y1="140" x2="156" y2="68" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+      <line x1="120" y1="158" x2="156" y2="218" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+      <line x1="280" y1="218" x2="346" y2="182" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+      <line x1="280" y1="228" x2="346" y2="234" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+      <line x1="480" y1="175" x2="596" y2="80" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+      <line x1="480" y1="185" x2="596" y2="155" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+      <line x1="480" y1="235" x2="596" y2="233" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#h2)"/>
+    </svg>
+  </div>
+  <p><em>Снаружи доступен только балансировщик. Всё описано в Terraform.</em></p>
+</section>
+
+<section class="slide">
+  <h2>CI/CD: от push до продакшена</h2>
+  <div class="flow-loop" style="margin:.4rem 0">
+    <div class="flow-step" style="--c:var(--accent);min-width:0;padding:.7rem 1.1rem"><span class="flow-label" style="font-size:1rem">git push</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent);min-width:0;padding:.7rem 1.1rem"><span class="flow-label" style="font-size:1rem">Тесты</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0;padding:.7rem 1.1rem"><span class="flow-label" style="font-size:1rem">Образ → реестр</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2);min-width:0;padding:.7rem 1.1rem"><span class="flow-label" style="font-size:1rem">Деплой</span></div>
+  </div>
+  <pre><code style="font-size:.7rem;line-height:1.35">on: { push: { branches: [main] } }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose run --rm api pytest
+      - run: |
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build -t ghcr.io/school/slot-api:${{ github.sha }} ./api
+          docker push ghcr.io/school/slot-api:${{ github.sha }}
+      - run: ssh deploy@slot.example "cd slot &amp;&amp; TAG=${{ github.sha }} docker compose up -d"</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Окружения</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">local</span><span class="flow-desc">разработка · тестовые данные</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">staging</span><span class="flow-desc">копия продакшена · обезличенные данные</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">production</span><span class="flow-desc">реальные пользователи</span></div>
+  </div>
+  <blockquote>Один и тот же <strong>образ</strong> проходит staging → production; отличаются только переменные окружения.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Секреты</h2>
+  <ol class="trace-log">
+    <li><span class="tag danger">Никогда</span> в git — даже в приватном; бот найдёт ключ за минуты после утечки</li>
+    <li><span class="tag obs">Локально</span> <code>.env</code> в <code>.gitignore</code>, в репозитории — <code>.env.example</code> без значений</li>
+    <li><span class="tag obs">CI</span> секреты CI (GitHub Actions secrets)</li>
+    <li><span class="tag obs">Облако</span> менеджер секретов: Lockbox, Secrets Manager, Vault</li>
+    <li><span class="tag danger">Утечка</span> отозвать и выпустить новый ключ, а не просто удалить коммит</li>
+    <li><span class="tag action">Агент</span> только тестовые ключи, никогда продакшен</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Бэкапы</h2>
+  <div class="trio">
+    <div class="card"><h4>Что</h4><p>БД — обязательно; загруженные файлы, конфиги.</p></div>
+    <div class="card"><h4>Как</h4><p><code>pg_dump</code> по расписанию или встроенные бэкапы управляемой БД.</p></div>
+    <div class="card"><h4>Куда</h4><p>В <strong>другое место</strong>: объектное хранилище, другой регион. Правило 3-2-1.</p></div>
+  </div>
+  <blockquote>Бэкап, который ни разу не восстанавливали, не существует. Раз в месяц — поднять копию и проверить данные.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Наблюдаемость</h2>
+  <table>
+    <tr><th>Сигнал</th><th>Вопрос</th><th>Инструменты</th></tr>
+    <tr><td><strong>Логи</strong></td><td>Что произошло?</td><td>Loki, ELK, облачные логи</td></tr>
+    <tr><td><strong>Метрики</strong></td><td>Сколько и как быстро?</td><td>Prometheus + Grafana</td></tr>
+    <tr><td><strong>Трассировки</strong></td><td>Где тормозит запрос?</td><td>OpenTelemetry, Jaeger</td></tr>
+    <tr><td><strong>Ошибки</strong></td><td>Что сломалось у пользователя?</td><td>Sentry</td></tr>
+    <tr><td><strong>Доступность</strong></td><td>Сайт вообще работает?</td><td>Uptime Kuma, внешние пингеры</td></tr>
+  </table>
+  <p>Минимум для первого проекта: <strong>проверка доступности с уведомлением в Telegram + Sentry</strong>.</p>
+</section>
+
+<section class="slide">
+  <h2>Инфраструктура как код</h2>
+  <pre><code style="font-size:.85rem">resource "yandex_compute_instance" "app" {
+  name        = "slot-app"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 4
+  }
+  boot_disk { initialize_params { image_id = "fd8…ubuntu-24-04" } }
+  network_interface { subnet_id = yandex_vpc_subnet.private.id }
+}</code></pre>
+  <div class="trio" style="grid-template-columns: 1fr 1fr;">
+    <div class="card"><h4>Terraform / OpenTofu</h4><p>Ресурсы облака: <code>plan</code> показывает изменения, <code>apply</code> применяет.</p></div>
+    <div class="card"><h4>Ansible</h4><p>Настройка серверов: пакеты, пользователи, конфиги.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Деньги</h2>
+  <ul>
+    <li>Включите <strong>бюджетные алерты</strong> в облаке в первый же день</li>
+    <li>Типичные утечки: забытые ВМ и диски, исходящий трафик, NAT-шлюзы, логи без срока хранения</li>
+    <li>Начинайте с маленького и масштабируйте по метрикам, а не «на вырост»</li>
+    <li>Бесплатные уровни (free tier) имеют лимиты — читайте условия</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol style="font-size:.95em">
+    <li>Арендуйте VPS, настройте SSH-ключи, пользователя, файрвол</li>
+    <li>Купите домен (или возьмите поддомен), направьте A-запись на VPS</li>
+    <li>Разверните «Slot» через Compose за Caddy с HTTPS</li>
+    <li>Деплой из GitHub Actions при push в <code>main</code></li>
+    <li>Ночной бэкап БД в объектное хранилище — <strong>и восстановите из него</strong>; проверка доступности с уведомлением</li>
+    <li><strong>С агентом:</strong> попросите написать CI-workflow и чек-лист защиты сервера; команды выполняйте сами, продакшен-секреты агенту не давайте</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Живой адрес <code>https://…</code> с валидным сертификатом</li>
+    <li>CI-пайплайн: тесты → образ → деплой</li>
+    <li>Доказательство успешного восстановления из бэкапа</li>
+    <li>Скриншот алерта о недоступности (выключите API и дождитесь уведомления)</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 12</p>
+  <h2>Далее: Запуск и продвижение</h2>
+  <p>Первый проект: VPS + Compose или PaaS. DNS превращает имя в адрес, HTTPS обязателен, reverse proxy — единая точка входа. CI/CD, секреты вне git, проверенные бэкапы, мониторинг — с первого дня.</p>
+  <p><em>Дальше — как пользователи найдут «Slot».</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 12 — Запуск и продвижение</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 12</p>
+  <h1>Запуск и продвижение</h1>
+  <h2>Первые пользователи: как работают поисковики и ленты соцсетей и как спланировать запуск</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Как работает поисковик; техническое и контентное SEO</li>
+    <li>Google и Яндекс</li>
+    <li>Как ранжируют ленты соцсетей</li>
+    <li>Каналы запуска, позиционирование, лендинг</li>
+    <li>Воронка AARRR и аналитика</li>
+    <li>Приватность и согласие</li>
+    <li>Лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Понимать, как поисковики и ленты соцсетей решают, что увидит человек</li>
+    <li>Технически подготовить приложение к индексации и измерению</li>
+    <li>Выбрать каналы под свою аудиторию</li>
+    <li>Спланировать запуск с понятными метриками</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>«Сделай — и они придут» не работает</h2>
+  <p>Каждый день запускаются тысячи приложений. Пользователь находит продукт тремя путями:</p>
+  <div class="trio">
+    <div class="card"><h4>Поиск</h4><p>Человек сам ищет решение: «запись к барберу онлайн». Алгоритм — ранжирование поисковика.</p></div>
+    <div class="card"><h4>Рекомендации</h4><p>Ленты соцсетей, советы друзей. Алгоритм — рекомендательная система.</p></div>
+    <div class="card"><h4>Прямой переход</h4><p>Реклама, ссылка, QR-код. Алгоритм — ваш бюджет и креатив.</p></div>
+  </div>
+  <blockquote>Продвижение — тоже инженерная задача: гипотеза → эксперимент → метрика.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Как работает поисковик</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Обход</span><span class="flow-desc">робот скачивает страницы по ссылкам</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Рендеринг</span><span class="flow-desc">выполняет JS — дорого, откладывается</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Индексация</span><span class="flow-desc">текст, заголовки, ссылки, разметка</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Ранжирование</span><span class="flow-desc">сотни сигналов на каждый запрос</span></div>
+  </div>
+  <p>Сигналы ранжирования: релевантность, качество, поведение пользователей, скорость, ссылки.</p>
+  <blockquote>Страницы нет в индексе — её не найдут, как бы хороша она ни была.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Почему здесь важна архитектура</h2>
+  <div class="compare">
+    <div class="card after">
+      <h4>SSR / SSG</h4>
+      <p>Робот сразу видит готовый HTML с контентом. Риск минимальный.</p>
+      <pre><code style="font-size:.78rem">&lt;h1&gt;Барбершоп «Борода»&lt;/h1&gt;
+&lt;li&gt;Стрижка бороды — 900 ₽&lt;/li&gt;</code></pre>
+    </div>
+    <div class="card before">
+      <h4>SPA</h4>
+      <p>Робот видит пустой контейнер; контент — только после рендеринга, позже и не всегда.</p>
+      <pre><code style="font-size:.78rem">&lt;div id="root"&gt;&lt;/div&gt;</code></pre>
+    </div>
+  </div>
+  <p>Связь с Модулем 2: публичная страница «Slot» — SSR/SSG, админка — SPA с <code>noindex</code>.</p>
+</section>
+
+<section class="slide">
+  <h2>Техническое SEO: чек-лист</h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">Обход</span> <code>robots.txt</code> — что можно обходить; <code>sitemap.xml</code> — список страниц</li>
+    <li><span class="tag plan">Meta</span> уникальные <code>&lt;title&gt;</code> и <code>description</code>; <code>canonical</code> при дублях</li>
+    <li><span class="tag plan">Структура</span> один <code>&lt;h1&gt;</code>, логичная иерархия заголовков</li>
+    <li><span class="tag plan">URL</span> <code>/barbershop-boroda/services</code>, а не <code>/?id=17</code></li>
+    <li><span class="tag obs">Mobile-first</span> индексируется мобильная версия</li>
+    <li><span class="tag obs">Скорость</span> HTTPS, Core Web Vitals</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Open Graph и микроразметка</h2>
+  <pre><code style="font-size:.8rem;line-height:1.35">&lt;meta property="<span style="color:var(--accent)">og:title</span>" content="Барбершоп «Борода» — запись онлайн"&gt;
+&lt;meta property="<span style="color:var(--accent)">og:image</span>" content="https://slot.example/og/boroda.png"&gt;
+
+&lt;script type="<span style="color:var(--accent-3)">application/ld+json</span>"&gt;
+{
+  "@context": "https://schema.org",
+  "@type": "<span style="color:var(--accent-2)">HairSalon</span>",
+  "name": "Барбершоп «Борода»",
+  "address": { "@type": "PostalAddress", "addressLocality": "Казань" },
+  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "128" }
+}
+&lt;/script&gt;</code></pre>
+  <ul>
+    <li><strong>Open Graph</strong> — как выглядит ссылка в Telegram, VK, соцсетях</li>
+    <li><strong>schema.org (JSON-LD)</strong> — поисковик понимает, что это за сущность; шанс на расширенный сниппет</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Google и Яндекс</h2>
+  <table>
+    <tr><th></th><th>Google</th><th>Яндекс</th></tr>
+    <tr><td>Кабинет</td><td>Search Console</td><td>Яндекс Вебмастер</td></tr>
+    <tr><td>Особенности</td><td>Сильнее ссылочные сигналы, Core Web Vitals</td><td>Сильнее поведенческие факторы, региональность, коммерческие факторы</td></tr>
+    <tr><td>Локальный бизнес</td><td>Google Business Profile</td><td>Яндекс Бизнес, Яндекс Карты</td></tr>
+  </table>
+  <blockquote>Для «Slot» в России обязательно <strong>Яндекс Бизнес</strong> и Карты — люди ищут «барбершоп рядом».</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Контентное SEO</h2>
+  <ul>
+    <li><strong>Поисковый интент:</strong> что человек хочет — узнать, купить, найти место?</li>
+    <li>Ключевые фразы: Яндекс Wordstat, Google Keyword Planner — что и сколько ищут</li>
+    <li><strong>Посадочная страница под сценарий:</strong> «стрижка бороды Казань», «запись к барберу онлайн»</li>
+    <li>Полезный контент лучше «текста для робота»: цены, фото работ, отзывы</li>
+    <li><strong>Ссылки</strong> с других сайтов — рекомендации, которым поисковик доверяет</li>
+  </ul>
+  <div class="compare" style="grid-template-columns:1fr">
+    <div class="card before"><h4>Не надо</h4><p>Покупать ссылки у «гарантированных SEO-продвиженцев» — за это санкции.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Как ранжируют ленты соцсетей</h2>
+  <div class="compare" style="grid-template-columns: 1fr 1.1fr; align-items:center">
+    <svg viewBox="0 0 320 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:360px">
+      <circle cx="160" cy="140" r="130" fill="none" stroke="var(--accent-2)" stroke-width="2" stroke-dasharray="6 5"/>
+      <circle cx="160" cy="140" r="85" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/>
+      <circle cx="160" cy="140" r="40" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="160" y="137" text-anchor="middle" fill="var(--accent-3)" font-size="13" font-weight="700">тест</text>
+      <text x="160" y="153" text-anchor="middle" fill="var(--fg-dim)" font-size="10">~сотни</text>
+      <text x="160" y="76" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="700">зашло → шире</text>
+      <text x="160" y="30" text-anchor="middle" fill="var(--accent-2)" font-size="12" font-weight="700">снова зашло → ещё шире</text>
+      <text x="160" y="262" text-anchor="middle" fill="var(--fg-dim)" font-size="11">не зашло → показ останавливается</text>
+    </svg>
+    <table style="font-size:.92rem">
+      <tr><th>Сигнал</th><th>Почему важен</th></tr>
+      <tr><td><strong>Время просмотра</strong></td><td>Главный сигнал интереса в коротких видео</td></tr>
+      <tr><td><strong>Сохранения, репосты</strong></td><td>Сильнее лайков: «это ценно»</td></tr>
+      <tr><td><strong>Комментарии</strong></td><td>Вовлечённость</td></tr>
+      <tr><td><strong>Скорость реакции</strong></td><td>Решает, расширять ли показ</td></tr>
+      <tr><td><strong>Отказы, скрытия</strong></td><td>Отрицательный сигнал</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Граф интересов vs социальный граф</h2>
+  <table>
+    <tr><th></th><th>Социальный граф</th><th>Граф интересов</th></tr>
+    <tr><td>Кому показывают</td><td>Вашим подписчикам и друзьям</td><td>Всем, кому тема может быть интересна</td></tr>
+    <tr><td>Примеры</td><td>Классическая лента VK, Facebook</td><td>TikTok, YouTube Shorts, Reels, Дзен</td></tr>
+    <tr><td>Что значит для новичка</td><td>Нужна база подписчиков</td><td>Шанс на охват с нуля</td></tr>
+  </table>
+  <blockquote>Для запуска без аудитории — форматы с <strong>графом интересов</strong>: короткие видео, Shorts.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Каналы запуска</h2>
+  <table style="font-size:.95rem">
+    <tr><th>Канал</th><th>Кому подходит</th></tr>
+    <tr><td><strong>Telegram</strong> — свои и тематические каналы, чаты</td><td>Почти всем в России</td></tr>
+    <tr><td><strong>VK</strong> — сообщества, реклама с гео</td><td>Локальный бизнес, B2C</td></tr>
+    <tr><td><strong>YouTube Shorts, TikTok, Reels</strong></td><td>Визуальные продукты, «до/после»</td></tr>
+    <tr><td><strong>Хабр, VC.ru</strong></td><td>Разработчики, предприниматели, B2B</td></tr>
+    <tr><td><strong>Product Hunt, Reddit, Hacker News</strong></td><td>Международная техническая аудитория</td></tr>
+    <tr><td><strong>Локальные сообщества, офлайн</strong></td><td>QR-код на стойке барбершопа — тоже канал</td></tr>
+  </table>
+  <p><strong>1–2 канала, где точно есть ваша аудитория</strong>, лучше, чем 10 «для галочки».</p>
+</section>
+
+<section class="slide">
+  <h2>Позиционирование и лендинг</h2>
+  <div class="trio" style="grid-template-columns: repeat(4, 1fr); max-width:1150px">
+    <div class="card"><h4>Одна аудитория</h4><p>Мастера-одиночки, а не «все, кто работает с клиентами».</p></div>
+    <div class="card"><h4>Одна проблема</h4><p>«Клиенты пишут ночью, записи теряются».</p></div>
+    <div class="card"><h4>Одно обещание</h4><p>«Запись без переписки за 30 секунд».</p></div>
+    <div class="card"><h4>Одно действие</h4><p>«Подключить бесплатно».</p></div>
+  </div>
+  <p>Доказательства: скриншоты, отзывы первых мастеров, цифры.</p>
+  <blockquote>Если лендинг нельзя пересказать в одном предложении — его не поймут.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Воронка AARRR</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 900 270" xmlns="http://www.w3.org/2000/svg" style="width:900px">
+      <style>.fu-t{font-size:14px;font-weight:700;fill:var(--bg)}.fu-d{font-size:12px;fill:var(--fg)}</style>
+      <polygon points="0,0 420,0 400,50 20,50" fill="var(--accent)"/>
+      <polygon points="24,54 396,54 376,104 44,104" fill="var(--accent)" opacity=".85"/>
+      <polygon points="48,108 372,108 352,158 68,158" fill="var(--accent-3)"/>
+      <polygon points="72,162 348,162 328,212 92,212" fill="var(--accent-3)" opacity=".85"/>
+      <polygon points="96,216 324,216 304,266 116,266" fill="var(--accent-2)"/>
+      <text class="fu-t" x="210" y="31" text-anchor="middle">Acquisition · привлечение</text>
+      <text class="fu-t" x="210" y="85" text-anchor="middle">Activation · активация</text>
+      <text class="fu-t" x="210" y="139" text-anchor="middle">Retention · удержание</text>
+      <text class="fu-t" x="210" y="193" text-anchor="middle">Referral · рекомендации</text>
+      <text class="fu-t" x="210" y="247" text-anchor="middle">Revenue · доход</text>
+      <text class="fu-d" x="450" y="31">Посетители по каналам</text>
+      <text class="fu-d" x="450" y="85">Мастер опубликовал расписание</text>
+      <text class="fu-d" x="450" y="139">Мастер активен через 4 недели</text>
+      <text class="fu-d" x="450" y="193">Клиенты → новые мастера</text>
+      <text class="fu-d" x="450" y="247">Переход на платный тариф</text>
+    </svg>
+  </div>
+  <p>Чините самый «дырявый» этап воронки, а не самый интересный.</p>
+</section>
+
+<section class="slide">
+  <h2>Аналитика</h2>
+  <div class="trio">
+    <div class="card"><h4>Яндекс Метрика</h4><p>Цели, Вебвизор (записи сессий), карты кликов. Популярна в России.</p></div>
+    <div class="card"><h4>GA4</h4><p>События, воронки, интеграция с Google Ads.</p></div>
+    <div class="card"><h4>Продуктовая</h4><p>PostHog, Amplitude: поведение внутри приложения.</p></div>
+  </div>
+  <ul>
+    <li><strong>Цели / события</strong> отправляем из кода: <code>booking_created</code>, <code>master_signed_up</code></li>
+    <li><strong>UTM-метки</strong> — откуда пришёл человек:</li>
+  </ul>
+  <pre><code style="font-size:.85rem">https://slot.example/?<span style="color:var(--accent)">utm_source</span>=telegram&amp;<span style="color:var(--accent-3)">utm_medium</span>=post&amp;<span style="color:var(--accent-2)">utm_campaign</span>=launch</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Приватность и согласие</h2>
+  <ul>
+    <li>Аналитика и cookie собирают <strong>персональные данные</strong></li>
+    <li>Нужны: политика конфиденциальности, баннер согласия на необязательные cookie</li>
+    <li>В России — <strong>152-ФЗ</strong>: согласие на обработку, хранение данных россиян на серверах в РФ, уведомление Роскомнадзора</li>
+    <li>В ЕС — <strong>GDPR</strong>: явное согласие до установки аналитических cookie</li>
+    <li>Собирайте только то, что используете</li>
+  </ul>
+  <p><em>Не юридическая консультация — для реального бизнеса уточняйте у юриста.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Продвижение и ИИ-агенты</h2>
+  <div class="compare">
+    <div class="card after">
+      <h4>Агент полезен</h4>
+      <ul>
+        <li>Аудит технического SEO: meta, sitemap, микроразметка, заголовки</li>
+        <li>Черновики постов и варианты заголовков для A/B-теста</li>
+      </ul>
+    </div>
+    <div class="card before">
+      <h4>Осторожно</h4>
+      <ul>
+        <li>Шаблонный ИИ-текст алгоритмы и люди распознают и понижают</li>
+        <li>Переписывайте своим голосом</li>
+      </ul>
+    </div>
+  </div>
+  <p>Ответы ИИ-поисковиков (AI Overviews, Нейро) тоже опираются на понятный структурированный контент и микроразметку.</p>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol>
+    <li>Сделайте «Slot» индексируемым: <code>robots.txt</code>, <code>sitemap.xml</code>, title/description, OG, JSON-LD</li>
+    <li>Добавьте сайт в Яндекс Вебмастер и Google Search Console</li>
+    <li>Аналитика с целью «бронирование создано» и UTM-метками</li>
+    <li>Позиционирование в одно предложение; план запуска для <strong>двух</strong> каналов</li>
+    <li><strong>С агентом:</strong> аудит технического SEO и черновики постов; перепишите посты своим голосом</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Пройденный SEO-чек-лист (Lighthouse SEO + валидатор микроразметки)</li>
+    <li>Дашборд аналитики с целями</li>
+    <li>План запуска: каналы, контент, даты, целевые метрики по AARRR</li>
+    <li>Что из аудита агента оказалось полезным, а что — шумом</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 13</p>
+  <h2>Далее: Итоговый проект</h2>
+  <p>Поиск: обход → рендеринг → индексация → ранжирование. Ленты — рекомендательные системы. 1–2 канала, где есть ваша аудитория. Измеряйте воронку и чините самый слабый этап.</p>
+  <p><em>Дальше запускаем «Slot» целиком.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

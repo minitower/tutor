@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 4 — Проектирование API</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 4</p>
+  <h1>Проектирование API</h1>
+  <h2>Контракт, на который могут положиться люди и агенты</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>API как продукт и контракт; ресурсы, URL, методы, коды ответов</li>
+    <li>Единый формат ошибок и валидация</li>
+    <li>Пагинация, фильтры, соглашения о данных</li>
+    <li>Идемпотентность и одновременные правки</li>
+    <li>Версионирование, авторизация, лимиты, вебхуки</li>
+    <li>REST, GraphQL, gRPC — что когда</li>
+    <li>Contract-first и API для ИИ-агентов; лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Проектировать API, поведение которого клиент может <strong>предсказать</strong>, не читая код</li>
+    <li>Сделать API устойчивым к повторам, двойным кликам и одновременным правкам</li>
+    <li>Развивать API, <strong>не ломая</strong> существующих клиентов</li>
+    <li>Описывать контракт в OpenAPI и проверять реализацию автоматически</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>API — это продукт и контракт</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg" style="width:860px">
+      <defs><marker id="p0" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <g font-size="13" font-weight="700" text-anchor="middle">
+        <rect x="10" y="10" width="160" height="38" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text x="90" y="34" fill="var(--accent)">Фронтенд</text>
+        <rect x="10" y="58" width="160" height="38" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text x="90" y="82" fill="var(--accent)">Мобильное приложение</text>
+        <rect x="10" y="106" width="160" height="38" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><text x="90" y="130" fill="var(--accent)">Партнёры</text>
+        <rect x="10" y="154" width="160" height="38" rx="8" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/><text x="90" y="178" fill="var(--accent-3)">ИИ-агенты</text>
+      </g>
+      <rect x="340" y="60" width="200" height="80" rx="12" fill="var(--card)" stroke="var(--accent-2)" stroke-width="3"/>
+      <text x="440" y="96" text-anchor="middle" fill="var(--accent-2)" font-size="17" font-weight="700">API-контракт</text>
+      <text x="440" y="118" text-anchor="middle" fill="var(--fg-dim)" font-size="12">openapi.yaml</text>
+      <rect x="680" y="70" width="170" height="60" rx="12" fill="var(--card)" stroke="var(--fg-dim)" stroke-width="2"/>
+      <text x="765" y="98" text-anchor="middle" fill="var(--fg)" font-size="14" font-weight="700">Реализация</text>
+      <text x="765" y="116" text-anchor="middle" fill="var(--fg-dim)" font-size="11">можно переписать</text>
+      <g stroke="var(--fg-dim)" stroke-width="1.6">
+        <line x1="170" y1="29" x2="336" y2="80" marker-end="url(#p0)"/><line x1="170" y1="77" x2="336" y2="92" marker-end="url(#p0)"/>
+        <line x1="170" y1="125" x2="336" y2="108" marker-end="url(#p0)"/><line x1="170" y1="173" x2="336" y2="122" marker-end="url(#p0)"/>
+        <line x1="540" y1="100" x2="676" y2="100" marker-end="url(#p0)"/>
+      </g>
+      <text x="440" y="170" text-anchor="middle" fill="var(--fg-dim)" font-size="12">менять осторожно: от него зависят все слева</text>
+    </svg>
+  </div>
+  <ul>
+    <li>Старые версии приложения живут у пользователей годами — опубликованный API нельзя «просто переписать»</li>
+    <li>Хороший API <strong>скучный и предсказуемый</strong>: увидев один эндпоинт, можно угадать остальные</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Ресурсы и URL</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Плохо</h4>
+      <pre><code style="font-size:.82rem">POST /createBooking
+GET  /getSlotsForMaster?id=7
+GET  /api/Booking_List
+GET  /masters/7/services/3/slots/42/bookings</code></pre>
+    </div>
+    <div class="card after">
+      <h4>Хорошо</h4>
+      <pre><code style="font-size:.82rem">POST  /api/bookings
+GET   /api/masters/7/slots
+GET   /api/bookings
+PATCH /api/bookings/1017</code></pre>
+    </div>
+  </div>
+  <ul>
+    <li>URL — <strong>существительные</strong>, коллекции — во множественном числе</li>
+    <li>Вложенность — максимум один уровень; действие — это метод HTTP, а не глагол в пути</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Методы: безопасные и идемпотентные</h2>
+  <table>
+    <tr><th>Метод</th><th>Что делает</th><th>Безопасный</th><th>Идемпотентный</th></tr>
+    <tr><td><code>GET</code></td><td>Прочитать</td><td>Да</td><td>Да</td></tr>
+    <tr><td><code>PUT</code></td><td>Заменить целиком</td><td>Нет</td><td>Да</td></tr>
+    <tr><td><code>DELETE</code></td><td>Удалить</td><td>Нет</td><td>Да</td></tr>
+    <tr><td><code>PATCH</code></td><td>Изменить часть</td><td>Нет</td><td>Не обязательно</td></tr>
+    <tr><td><code>POST</code></td><td>Создать / действие</td><td>Нет</td><td><strong style="color:var(--danger)">Нет</strong></td></tr>
+  </table>
+  <p><strong>Безопасный</strong> — ничего не меняет. <strong>Идемпотентный</strong> — повтор даёт тот же результат, что и один запрос.</p>
+  <blockquote>Клиенты, прокси и SDK <strong>повторяют</strong> запросы. Повтор <code>POST</code> — это вторая запись.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Коды ответов, которые действительно нужны</h2>
+  <div class="compare" style="grid-template-columns: 1fr 1fr">
+    <table style="font-size:.92rem">
+      <tr><th>Код</th><th>Когда</th></tr>
+      <tr><td><code>200</code> · <code>201</code> · <code>204</code></td><td>Прочитали · создали · удалили</td></tr>
+      <tr><td><code>400</code></td><td>Запрос нельзя разобрать</td></tr>
+      <tr><td><code>401</code></td><td>Не знаем, кто вы</td></tr>
+      <tr><td><code>403</code></td><td>Знаем, но нельзя</td></tr>
+      <tr><td><code>404</code></td><td>Ресурса нет</td></tr>
+    </table>
+    <table style="font-size:.92rem">
+      <tr><th>Код</th><th>Когда</th></tr>
+      <tr><td><code>409</code></td><td>Конфликт: слот уже занят</td></tr>
+      <tr><td><code>422</code></td><td>Данные не прошли валидацию</td></tr>
+      <tr><td><code>429</code></td><td>Превышен лимит</td></tr>
+      <tr><td><code>500</code></td><td>Ошибка сервера</td></tr>
+      <tr><td><code>503</code></td><td>Временно недоступен</td></tr>
+    </table>
+  </div>
+  <blockquote><code>4xx</code> — клиент может исправить запрос; <code>5xx</code> — клиент не виноват, можно повторить позже.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Единый формат ошибок: Problem Details (RFC 9457)</h2>
+  <pre><code style="font-size:.88rem">HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{
+  "<span style="color:var(--accent-3)">type</span>": "https://slot.example/errors/slot-taken",
+  "<span style="color:var(--accent)">title</span>": "Слот уже занят",
+  "<span style="color:var(--accent)">status</span>": 409,
+  "<span style="color:var(--accent)">detail</span>": "Слот 42 заняли в 14:03",
+  "<span style="color:var(--accent)">instance</span>": "/api/bookings",
+  "<span style="color:var(--accent-2)">nearest_free_slots</span>": [43, 47]
+}</code></pre>
+  <ul>
+    <li>Один формат на весь API — фронтенд и агент разбирают ошибки одним кодом</li>
+    <li><code>type</code> — стабильный идентификатор, по нему клиент решает, что делать; свои поля разрешены</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Валидация на границе</h2>
+  <pre><code style="font-size:.85rem">HTTP/1.1 422 Unprocessable Content
+Content-Type: application/problem+json
+
+{
+  "type": "https://slot.example/errors/validation",
+  "title": "Данные не прошли проверку",
+  "status": 422,
+  "errors": [
+    {"field": "<span style="color:var(--accent-3)">phone</span>", "message": "Ожидается номер в формате +7XXXXXXXXXX"},
+    {"field": "<span style="color:var(--accent-3)">slot_id</span>", "message": "Слот в прошлом"}
+  ]
+}</code></pre>
+  <ul>
+    <li>Проверяем <strong>всё</strong>, что пришло от клиента; ошибки — <strong>по полям</strong>, чтобы форма подсветила нужное место</li>
+    <li>Pydantic / FastAPI проверяют типы; бизнес-правила — ваш код</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Пагинация</h2>
+  <table>
+    <tr><th></th><th>Offset: <code>?page=3&amp;size=20</code></th><th>Cursor: <code>?cursor=…&amp;limit=20</code></th></tr>
+    <tr><td>Как работает</td><td>Пропустить N строк</td><td>Продолжить после последнего элемента</td></tr>
+    <tr><td>Прыгнуть на страницу 50</td><td>Можно</td><td>Нельзя</td></tr>
+    <tr><td>Новые записи во время листания</td><td style="color:var(--danger)">Дубли и пропуски</td><td style="color:var(--accent-2)">Стабильно</td></tr>
+    <tr><td>Скорость на больших таблицах</td><td style="color:var(--danger)">Падает</td><td style="color:var(--accent-2)">Постоянная (по индексу)</td></tr>
+  </table>
+  <pre><code style="font-size:.82rem">{ "items": [ ... ], "next_cursor": "eyJzdGFydHNfYXQiOiIyMDI2LTEwLTA5VDE1OjAwIiwiaWQiOjQ3fQ" }</code></pre>
+  <p><em>Курсор непрозрачен для клиента (внутри — ключ последнего элемента). Списки всегда с лимитом.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Фильтры, сортировка, соглашения о данных</h2>
+  <ul>
+    <li>Фильтры и сортировка — параметрами: <code>GET /api/slots?master_id=7&amp;from=2026-10-09&amp;sort=starts_at</code></li>
+    <li>Один стиль имён во всём API: <code>snake_case</code> <strong>или</strong> <code>camelCase</code>, не вперемешку</li>
+  </ul>
+  <div class="trio">
+    <div class="card"><h4>Дата и время</h4><p>ISO 8601 с часовым поясом:<br><code>2026-10-09T15:00:00+03:00</code></p></div>
+    <div class="card"><h4>Деньги</h4><p>Целое в минимальных единицах + валюта:<br><code>{"amount": 90000, "currency": "RUB"}</code> = 900 ₽</p></div>
+    <div class="card"><h4>null или нет поля</h4><p>Договоритесь, что означает каждое — и опишите в OpenAPI.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Идемпотентность: проблема</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 860 250" xmlns="http://www.w3.org/2000/svg" style="width:860px">
+      <style>.ip-l{font-size:12px;fill:var(--fg)}</style>
+      <defs><marker id="p1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <text x="90" y="20" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">Клиент</text>
+      <text x="770" y="20" text-anchor="middle" fill="var(--accent-2)" font-size="15" font-weight="700">Сервер</text>
+      <line x1="90" y1="30" x2="90" y2="245" stroke="var(--border)" stroke-dasharray="5 4"/>
+      <line x1="770" y1="30" x2="770" y2="245" stroke="var(--border)" stroke-dasharray="5 4"/>
+      <line x1="90" y1="55" x2="766" y2="70" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#p1)"/>
+      <text class="ip-l" x="300" y="52">POST /bookings (слот 42)</text>
+      <text x="780" y="78" fill="var(--accent-2)" font-size="12">запись 1017 создана</text>
+      <path d="M770,95 L440,115" stroke="var(--danger)" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="425" y="122" fill="var(--danger)" font-size="18" font-weight="700">✕</text>
+      <text class="ip-l" x="500" y="96">201 — ответ потерялся</text>
+      <line x1="90" y1="160" x2="766" y2="175" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#p1)"/>
+      <text class="ip-l" x="300" y="157">повтор: POST /bookings (слот 42)</text>
+      <line x1="766" y1="205" x2="94" y2="220" stroke="var(--danger)" stroke-width="2" marker-end="url(#p1)"/>
+      <text x="260" y="238" fill="var(--danger)" font-size="13" font-weight="700">409 «Слот занят» — на свою же запись (или вторая запись)</text>
+    </svg>
+  </div>
+  <p>Решение — <strong>ключ идемпотентности</strong>: клиент генерирует UUID <strong>один раз на действие</strong> и повторяет его при ретраях.</p>
+  <pre><code>POST /api/bookings
+Idempotency-Key: 9b2f6c1e-4d7a-4f0e-9a51-3c8e2b7d1a44</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Идемпотентность: реализация</h2>
+  <pre><code style="font-size:.85rem">@app.post("/api/bookings", status_code=201)
+async def create_booking(data: BookingCreate, <span style="color:var(--accent-3)">idempotency_key: str = Header()</span>):
+    saved = await repo.get_idempotent(idempotency_key)
+    if saved:
+        if saved.request_hash != hash_of(data):
+            raise HTTPException(422, "Ключ уже использован с другим телом запроса")
+        return saved.response                     <span style="color:var(--accent-2)"># повтор: тот же ответ</span>
+    booking = await book_slot(data)
+    await repo.save_idempotent(idempotency_key, hash_of(data), booking)
+    return booking</code></pre>
+  <ul>
+    <li>Ключ хранится <strong>в той же транзакции</strong>, что и запись, с уникальным индексом — два одновременных повтора не пройдут оба</li>
+    <li>Ключи хранят ограниченное время (например, 24 часа); тот же ключ с другим телом — ошибка клиента</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Одновременные правки: ETag и If-Match</h2>
+  <p>Мастер и администратор правят одну запись — побеждает последний, правка первого молча теряется.</p>
+  <ol class="trace-log">
+    <li><span class="tag plan">GET</span> <code>/api/bookings/1017</code> → 200, <code>ETag: "v7"</code></li>
+    <li><span class="tag obs">PATCH</span> <code>If-Match: "v7"</code> → 200, <code>ETag: "v8"</code></li>
+    <li><span class="tag danger">PATCH</span> <code>If-Match: "v7"</code> → <strong>412 Precondition Failed</strong> — запись уже изменили</li>
+  </ol>
+  <ul>
+    <li><strong>Оптимистичная блокировка</strong>: не держим замок, а проверяем версию при записи</li>
+    <li>Внутри: <code>UPDATE ... SET version = version + 1 WHERE id = 1017 AND version = 7</code></li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Версионирование и развитие</h2>
+  <div class="compare">
+    <div class="card after">
+      <h4>Добавлять можно</h4>
+      <ul><li>Новые эндпоинты</li><li>Новые необязательные поля в запросе</li><li>Новые поля в ответе</li></ul>
+    </div>
+    <div class="card before">
+      <h4>Ломает клиентов → новая версия</h4>
+      <ul><li>Удалить или переименовать поле</li><li>Сменить тип, сделать поле обязательным</li><li>Изменить смысл кода ответа</li></ul>
+    </div>
+  </div>
+  <ul>
+    <li>Способы: в пути <code>/api/v1/...</code> (проще всего), в заголовке, по дате версии</li>
+    <li>Вывод из эксплуатации: объявить заранее, заголовки <code>Deprecation</code> и <code>Sunset</code>, смотреть в логах, кто ещё вызывает старую версию</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Авторизация и лимиты</h2>
+  <ul>
+    <li>Пользователи — сессия или токен; партнёры — <strong>API-ключи</strong> с правами: <code>bookings:read</code>, <code>bookings:write</code></li>
+    <li>Права — на <strong>каждом</strong> запросе, на сервере: не только «залогинен ли», но и «его ли это запись»</li>
+    <li><strong>Лимиты</strong> — на пользователя, ключ, IP; на дорогие операции (запись, вызов LLM) — строже</li>
+  </ul>
+  <pre><code>HTTP/1.1 429 Too Many Requests
+Retry-After: 30</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Вебхуки: API наоборот</h2>
+  <div class="compare" style="grid-template-columns: 1.15fr 1fr; align-items:center">
+    <pre style="margin:0"><code style="font-size:.78rem">import hashlib, hmac
+
+def verify(body: bytes, timestamp: str,
+           signature: str, secret: bytes) -&gt; bool:
+    signed = timestamp.encode() + b"." + body
+    expected = hmac.new(secret, signed,
+                        hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)</code></pre>
+    <ol class="trace-log" style="margin:0">
+      <li><span class="tag plan">Событие</span> создана запись → POST на URL партнёра</li>
+      <li><span class="tag obs">Подпись</span> HMAC + метка времени: от вас и не старое</li>
+      <li><span class="tag action">Повторы</span> с растущей паузой, пока нет <code>2xx</code></li>
+      <li><span class="tag danger">Дубли</span> получатель хранит <code>event_id</code></li>
+    </ol>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>REST, GraphQL, gRPC, WebSocket / SSE</h2>
+  <table>
+    <tr><th></th><th>Сильная сторона</th><th>Когда</th></tr>
+    <tr><td><strong>REST</strong></td><td>Просто, кэшируется, понятно всем</td><td>По умолчанию, публичные API</td></tr>
+    <tr><td><strong>GraphQL</strong></td><td>Клиент сам выбирает поля, один запрос вместо пяти</td><td>Сложный фронтенд, много связанных данных</td></tr>
+    <tr><td><strong>gRPC</strong></td><td>Бинарный, быстрый, строгая схема, стриминг</td><td>Общение сервисов внутри системы</td></tr>
+    <tr><td><strong>WebSocket / SSE</strong></td><td>Сервер сам присылает обновления</td><td>Чаты, живые статусы, стриминг ответов LLM (Модуль 7)</td></tr>
+  </table>
+  <p>Для «Slot»: REST наружу, SSE — для живого обновления свободных слотов.</p>
+</section>
+
+<section class="slide">
+  <h2>Contract-first: OpenAPI как источник правды</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent);min-width:0"><span class="flow-label">openapi.yaml</span><span class="flow-desc">меняем первым, ревью в PR</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0"><span class="flow-label">Spectral</span><span class="flow-desc">линтер спецификации</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0"><span class="flow-label">Prism · клиенты</span><span class="flow-desc">мок-сервер, генерация</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2);min-width:0"><span class="flow-label">Schemathesis</span><span class="flow-desc">реализация vs контракт</span></div>
+  </div>
+  <blockquote>Если контракт и код расходятся — контракт врёт, и его копируют все клиенты.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>API для ИИ-агентов</h2>
+  <div class="compare">
+    <div class="card after">
+      <h4>Агенту помогает</h4>
+      <ul>
+        <li>Описания в OpenAPI: что делает и когда вызывать</li>
+        <li>Примеры запросов и ответов</li>
+        <li>Предсказуемые ошибки с <code>type</code> и <code>detail</code></li>
+      </ul>
+    </div>
+    <div class="card before">
+      <h4>Агент усиливает риски</h4>
+      <ul>
+        <li>Повторяет запросы чаще людей → идемпотентность обязательна</li>
+        <li>Опасные действия — отдельные эндпоинты с отдельными правами</li>
+      </ul>
+    </div>
+  </div>
+  <p>Поверх API легко сделать <strong>MCP-сервер</strong> — и «Slot» станет инструментом для любого агента.</p>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol>
+    <li>Доработайте OpenAPI «Slot»: Problem Details, cursor-пагинация, <code>Idempotency-Key</code> на <code>POST /bookings</code>, ETag на изменение записи</li>
+    <li>Реализуйте изменения в API</li>
+    <li>Подписанный вебхук <code>booking.created</code> и получатель, который проверяет подпись</li>
+    <li>Проверьте спецификацию <strong>Spectral</strong>, прогоните <strong>Schemathesis</strong></li>
+    <li><strong>С агентом:</strong> поиск несогласованности в OpenAPI и запуск Schemathesis; каждую находку сверьте со спецификацией сами</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li><code>openapi.yaml</code>, проходящий Spectral</li>
+    <li>Реализация: ошибки, пагинация, идемпотентность, ETag, вебхук</li>
+    <li>Отчёт Schemathesis и что вы исправили</li>
+    <li>ADR о политике версионирования</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 05</p>
+  <h2>Далее: Базы данных</h2>
+  <p>API — контракт: предсказуемые URL, методы, коды и ошибки. Сеть повторяет запросы → идемпотентность и ETag. Добавлять можно, ломать — только с новой версией.</p>
+  <p><em>Дальше — модель данных, транзакции и как сделать двойную запись невозможной.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

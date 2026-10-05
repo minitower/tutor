@@ -18,6 +18,12 @@
       "port": 8123
     },
     {
+      "name": "architecture-slides",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8124", "--directory", "ai_dev_school/architecture"],
+      "port": 8124
+    },
+    {
       "name": "conferences-docs",
       "runtimeExecutable": "C:\\Users\\raven\\Projects\\tutor\\Валерия_ml\\web\\Lab 2\\main_task\\venv\\Scripts\\python.exe",
       "runtimeArgs": [

@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 9 — Kubernetes</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 9</p>
+  <h1>Kubernetes</h1>
+  <h2>Оркестрация контейнеров: как устроен кластер, из чего собирается приложение и когда k8s не нужен</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Проблема: много контейнеров на многих машинах</li>
+    <li>Главная идея: желаемое состояние; архитектура кластера</li>
+    <li>Рабочие нагрузки: Pod, Deployment и другие</li>
+    <li>Сеть: Service, Ingress; конфигурация и хранилище</li>
+    <li>Надёжность: пробы, лимиты, автомасштабирование</li>
+    <li>Helm, Kustomize, GitOps; где запускать и когда не нужно</li>
+    <li>Лабораторная</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Понимать, какую проблему решает Kubernetes</li>
+    <li>Знать, из чего состоит кластер и что делает каждая часть</li>
+    <li>Читать и писать базовые манифесты для веб-приложения</li>
+    <li>Честно решать, нужен ли проекту Kubernetes</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Проблема: серверов 10, контейнеров 200</h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">Размещение</span> на какой сервер поставить новый контейнер?</li>
+    <li><span class="tag danger">Сбой</span> сервер упал — кто перезапустит его контейнеры на другом?</li>
+    <li><span class="tag plan">Обновление</span> как выкатить версию без простоя?</li>
+    <li><span class="tag plan">Поиск</span> как сервисам найти друг друга, если IP меняются?</li>
+    <li><span class="tag plan">Нагрузка</span> как масштабировать вверх и обратно?</li>
+  </ol>
+  <p><strong>Оркестратор</strong> решает всё это автоматически. Kubernetes (k8s) — стандарт де-факто.</p>
+</section>
+
+<section class="slide">
+  <h2>Главная идея: желаемое состояние</h2>
+  <div class="compare" style="grid-template-columns: 1fr 1fr; align-items:center">
+    <div>
+      <ul>
+        <li>Не «запусти контейнер», а <strong>«должно работать 3 копии API версии 1.4»</strong></li>
+        <li>Kubernetes постоянно сравнивает <strong>желаемое</strong> с <strong>реальным</strong> и устраняет разницу</li>
+        <li>Упал под → реальное 2, желаемое 3 → создаётся новый</li>
+      </ul>
+      <p><em>Декларативно, как SQL: описываем что, а не как.</em></p>
+    </div>
+    <svg viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:340px">
+      <defs><marker id="k0" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <circle cx="150" cy="130" r="88" fill="none" stroke="var(--border)" stroke-width="2"/>
+      <path d="M150,42 A88,88 0 0,1 238,130" fill="none" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k0)"/>
+      <path d="M238,130 A88,88 0 0,1 150,218" fill="none" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k0)"/>
+      <path d="M150,218 A88,88 0 0,1 62,130" fill="none" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k0)"/>
+      <path d="M62,130 A88,88 0 0,1 150,42" fill="none" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k0)"/>
+      <rect x="95" y="24" width="110" height="34" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="150" y="46" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">наблюдать</text>
+      <rect x="190" y="113" width="105" height="34" rx="8" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="242" y="135" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">сравнить</text>
+      <rect x="95" y="202" width="110" height="34" rx="8" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="150" y="224" text-anchor="middle" fill="var(--accent-3)" font-size="14" font-weight="700">действовать</text>
+      <text x="150" y="126" text-anchor="middle" fill="var(--fg)" font-size="13">желаемое: 3</text>
+      <text x="150" y="146" text-anchor="middle" fill="var(--danger)" font-size="13">реальное: 2</text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Архитектура кластера</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" style="width:1000px">
+      <style>.kb{fill:var(--card);stroke-width:2}.kt{font-size:14px;font-weight:700;text-anchor:middle}.kd{font-size:11px;fill:var(--fg-dim);text-anchor:middle}</style>
+      <defs><marker id="k1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect x="10" y="10" width="420" height="310" rx="14" fill="none" stroke="var(--accent)" stroke-dasharray="6 5"/>
+      <text x="25" y="34" fill="var(--accent)" font-size="15" font-weight="700">Control plane · мозг</text>
+      <rect class="kb" x="130" y="55" width="180" height="56" rx="10" stroke="var(--accent)"/>
+      <text class="kt" x="220" y="80" fill="var(--accent)">API server</text><text class="kd" x="220" y="98">единая точка входа</text>
+      <rect class="kb" x="30" y="150" width="160" height="56" rx="10" stroke="var(--accent)"/>
+      <text class="kt" x="110" y="175" fill="var(--accent)">etcd</text><text class="kd" x="110" y="193">всё состояние</text>
+      <rect class="kb" x="250" y="150" width="160" height="56" rx="10" stroke="var(--accent)"/>
+      <text class="kt" x="330" y="175" fill="var(--accent)">Scheduler</text><text class="kd" x="330" y="193">какой под — на какой узел</text>
+      <rect class="kb" x="130" y="240" width="180" height="56" rx="10" stroke="var(--accent)"/>
+      <text class="kt" x="220" y="265" fill="var(--accent)">Controller manager</text><text class="kd" x="220" y="283">приводит к желаемому</text>
+      <line x1="170" y1="111" x2="125" y2="147" stroke="var(--fg-dim)" stroke-width="1.6" marker-end="url(#k1)"/>
+      <line x1="300" y1="147" x2="270" y2="114" stroke="var(--fg-dim)" stroke-width="1.6" marker-end="url(#k1)"/>
+      <line x1="220" y1="237" x2="220" y2="114" stroke="var(--fg-dim)" stroke-width="1.6" marker-end="url(#k1)"/>
+      <g>
+        <rect x="560" y="10" width="430" height="145" rx="14" fill="none" stroke="var(--accent-2)" stroke-dasharray="6 5"/>
+        <text x="575" y="34" fill="var(--accent-2)" font-size="15" font-weight="700">Узел 1 · мышцы</text>
+        <rect class="kb" x="575" y="48" width="120" height="44" rx="8" stroke="var(--accent-2)"/><text class="kt" x="635" y="75" fill="var(--accent-2)">kubelet</text>
+        <rect class="kb" x="705" y="48" width="130" height="44" rx="8" stroke="var(--accent-2)"/><text class="kt" x="770" y="75" fill="var(--accent-2)">kube-proxy</text>
+        <rect class="kb" x="845" y="48" width="130" height="44" rx="8" stroke="var(--accent-2)"/><text class="kt" x="910" y="75" fill="var(--accent-2)">containerd</text>
+        <rect class="kb" x="575" y="102" width="70" height="38" rx="8" stroke="var(--accent-3)"/><text class="kd" x="610" y="125" style="fill:var(--accent-3)">pod</text>
+        <rect class="kb" x="655" y="102" width="70" height="38" rx="8" stroke="var(--accent-3)"/><text class="kd" x="690" y="125" style="fill:var(--accent-3)">pod</text>
+      </g>
+      <g>
+        <rect x="560" y="175" width="430" height="145" rx="14" fill="none" stroke="var(--accent-2)" stroke-dasharray="6 5"/>
+        <text x="575" y="199" fill="var(--accent-2)" font-size="15" font-weight="700">Узел 2</text>
+        <rect class="kb" x="575" y="213" width="120" height="44" rx="8" stroke="var(--accent-2)"/><text class="kt" x="635" y="240" fill="var(--accent-2)">kubelet</text>
+        <rect class="kb" x="705" y="213" width="130" height="44" rx="8" stroke="var(--accent-2)"/><text class="kt" x="770" y="240" fill="var(--accent-2)">kube-proxy</text>
+        <rect class="kb" x="845" y="213" width="130" height="44" rx="8" stroke="var(--accent-2)"/><text class="kt" x="910" y="240" fill="var(--accent-2)">containerd</text>
+        <rect class="kb" x="575" y="267" width="70" height="38" rx="8" stroke="var(--accent-3)"/><text class="kd" x="610" y="290" style="fill:var(--accent-3)">pod</text>
+      </g>
+      <line x1="310" y1="75" x2="570" y2="70" stroke="var(--fg-dim)" stroke-width="1.6" marker-end="url(#k1)"/>
+      <line x1="310" y1="90" x2="570" y2="232" stroke="var(--fg-dim)" stroke-width="1.6" marker-end="url(#k1)"/>
+      <text x="440" y="62" fill="var(--fg-dim)" font-size="11" text-anchor="middle">kubelet следит за API</text>
+    </svg>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Что происходит при <code>kubectl apply</code></h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">kubectl</span> отправляет манифест в API server</li>
+    <li><span class="tag plan">API server</span> проверяет и сохраняет его в etcd</li>
+    <li><span class="tag action">Контроллер</span> нужно 3 пода, есть 0 → создаёт 3 объекта Pod</li>
+    <li><span class="tag action">Scheduler</span> видит поды без узла → назначает каждому узел</li>
+    <li><span class="tag obs">kubelet</span> видит назначенный под → просит containerd запустить контейнер</li>
+    <li><span class="tag obs">kubelet</span> докладывает статус → API server → etcd</li>
+  </ol>
+  <p><em>Никто никого не вызывает напрямую — все смотрят на состояние в API server.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Рабочие нагрузки</h2>
+  <table style="font-size:.95rem">
+    <tr><th>Объект</th><th>Что это</th><th>Когда</th></tr>
+    <tr><td><strong>Pod</strong></td><td>Один или несколько контейнеров с общей сетью</td><td>Минимальная единица; руками почти не создают</td></tr>
+    <tr><td><strong>ReplicaSet</strong></td><td>Держит N одинаковых подов</td><td>Создаётся Deployment-ом</td></tr>
+    <tr><td><strong>Deployment</strong></td><td>ReplicaSet + плавные обновления и откаты</td><td>Stateless: API, фронтенд</td></tr>
+    <tr><td><strong>StatefulSet</strong></td><td>Поды со стабильными именами и дисками</td><td>БД, очереди</td></tr>
+    <tr><td><strong>DaemonSet</strong></td><td>По одному поду на каждом узле</td><td>Сбор логов, мониторинг</td></tr>
+    <tr><td><strong>Job / CronJob</strong></td><td>Задача до завершения / по расписанию</td><td>Миграции, бэкапы, отчёты</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Deployment</h2>
+  <pre><code style="font-size:.8rem;line-height:1.35">apiVersion: apps/v1
+kind: <span style="color:var(--accent-3)">Deployment</span>
+metadata: { name: slot-api }
+spec:
+  <span style="color:var(--accent-2)">replicas: 3</span>                                  <span style="color:var(--fg-dim)"># желаемое состояние</span>
+  selector: { matchLabels: { app: slot-api } }
+  template:
+    metadata: { labels: { app: slot-api } }
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/school/slot-api:<span style="color:var(--accent)">1.4.0</span>   <span style="color:var(--fg-dim)"># не latest</span>
+          ports: [{ containerPort: 8000 }]
+          envFrom: [{ secretRef: { name: slot-secrets } }]
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { memory: 512Mi }
+          readinessProbe: { httpGet: { path: /health, port: 8000 } }</code></pre>
+</section>
+
+<section class="slide">
+  <h2>Сеть: Service</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 760 170" xmlns="http://www.w3.org/2000/svg" style="width:760px">
+      <defs><marker id="k2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect x="10" y="60" width="140" height="50" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="80" y="90" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">slot-web</text>
+      <rect x="250" y="55" width="190" height="60" rx="10" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="345" y="80" text-anchor="middle" fill="var(--accent-3)" font-size="14" font-weight="700">Service slot-api</text>
+      <text x="345" y="100" text-anchor="middle" fill="var(--fg-dim)" font-size="11">стабильное имя · app=slot-api</text>
+      <g>
+        <rect x="560" y="10" width="170" height="40" rx="8" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/><text x="645" y="35" text-anchor="middle" fill="var(--accent-2)" font-size="12">pod 10.1.0.17</text>
+        <rect x="560" y="65" width="170" height="40" rx="8" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/><text x="645" y="90" text-anchor="middle" fill="var(--accent-2)" font-size="12">pod 10.1.2.4</text>
+        <rect x="560" y="120" width="170" height="40" rx="8" fill="var(--card)" stroke="var(--danger)" stroke-width="2" stroke-dasharray="5 4"/><text x="645" y="145" text-anchor="middle" fill="var(--danger)" font-size="12">pod умер → новый IP</text>
+      </g>
+      <line x1="150" y1="85" x2="246" y2="85" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k2)"/>
+      <text x="198" y="76" text-anchor="middle" fill="var(--fg-dim)" font-size="11">http://slot-api</text>
+      <line x1="440" y1="78" x2="556" y2="32" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k2)"/>
+      <line x1="440" y1="85" x2="556" y2="85" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k2)"/>
+      <line x1="440" y1="92" x2="556" y2="138" stroke="var(--fg-dim)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#k2)"/>
+    </svg>
+  </div>
+  <table style="font-size:.95rem">
+    <tr><th>Тип</th><th>Доступен</th><th>Когда</th></tr>
+    <tr><td><strong>ClusterIP</strong></td><td>Только внутри кластера</td><td>API для фронтенда, БД</td></tr>
+    <tr><td><strong>NodePort</strong></td><td>Порт на каждом узле</td><td>Отладка</td></tr>
+    <tr><td><strong>LoadBalancer</strong></td><td>Внешний IP от облака</td><td>Публичный вход без Ingress</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Вход снаружи: Ingress и Gateway API</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 860 170" xmlns="http://www.w3.org/2000/svg" style="width:860px">
+      <defs><marker id="k3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-dim)"/></marker></defs>
+      <rect x="10" y="60" width="150" height="50" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="85" y="82" text-anchor="middle" fill="var(--accent)" font-size="13" font-weight="700">https://</text>
+      <text x="85" y="99" text-anchor="middle" fill="var(--accent)" font-size="13" font-weight="700">slot.example</text>
+      <rect x="250" y="50" width="200" height="70" rx="10" fill="var(--card)" stroke="var(--accent-3)" stroke-width="2"/>
+      <text x="350" y="78" text-anchor="middle" fill="var(--accent-3)" font-size="14" font-weight="700">Ingress-контроллер</text>
+      <text x="350" y="98" text-anchor="middle" fill="var(--fg-dim)" font-size="11">TLS (cert-manager) · правила</text>
+      <rect x="600" y="15" width="220" height="50" rx="10" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/>
+      <text x="710" y="45" text-anchor="middle" fill="var(--accent-2)" font-size="14" font-weight="700">Service slot-api</text>
+      <rect x="600" y="105" width="220" height="50" rx="10" fill="var(--card)" stroke="var(--accent-2)" stroke-width="2"/>
+      <text x="710" y="135" text-anchor="middle" fill="var(--accent-2)" font-size="14" font-weight="700">Service slot-web</text>
+      <line x1="160" y1="85" x2="246" y2="85" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k3)"/>
+      <line x1="450" y1="75" x2="596" y2="42" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k3)"/>
+      <line x1="450" y1="95" x2="596" y2="128" stroke="var(--fg-dim)" stroke-width="2" marker-end="url(#k3)"/>
+      <text x="520" y="48" fill="var(--fg)" font-size="13" font-family="monospace">/api</text>
+      <text x="520" y="128" fill="var(--fg)" font-size="13" font-family="monospace">/</text>
+    </svg>
+  </div>
+  <ul>
+    <li><strong>Ingress</strong> — правила HTTP-маршрутизации; работает через контроллер (ingress-nginx, Traefik)</li>
+    <li><strong>Gateway API</strong> — более новый и гибкий преемник Ingress</li>
+    <li><strong>cert-manager</strong> выпускает TLS-сертификаты Let's Encrypt автоматически</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Конфигурация и хранилище</h2>
+  <div class="trio" style="grid-template-columns: 1fr 1fr;">
+    <div class="card"><h4>ConfigMap</h4><p>Несекретные настройки: адреса, флаги.</p></div>
+    <div class="card"><h4>Secret</h4><p>Пароли, токены. По умолчанию это <strong>base64, а не шифрование</strong>: нужны шифрование etcd, RBAC, Vault / External Secrets.</p></div>
+    <div class="card"><h4>PersistentVolume</h4><p>Кусок диска в кластере.</p></div>
+    <div class="card"><h4>PersistentVolumeClaim</h4><p>Запрос пода: «мне нужно 10 ГБ»; облако выдаёт диск само (StorageClass).</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Надёжность: пробы</h2>
+  <table>
+    <tr><th>Проба</th><th>Вопрос</th><th>Если провалена</th></tr>
+    <tr><td><strong>liveness</strong></td><td>Процесс жив?</td><td>Перезапустить контейнер</td></tr>
+    <tr><td><strong>readiness</strong></td><td>Готов принимать трафик?</td><td>Убрать под из Service, не убивать</td></tr>
+    <tr><td><strong>startup</strong></td><td>Уже запустился?</td><td>Не проверять остальные пробы, пока не стартовал</td></tr>
+  </table>
+  <div class="compare">
+    <div class="card before"><h4>Типичная ошибка</h4><p>liveness проверяет БД → БД моргнула → Kubernetes перезапускает <strong>все</strong> поды API.</p></div>
+    <div class="card after"><h4>Правильно</h4><p>liveness — только «процесс отвечает»; зависимость от БД — в readiness.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Надёжность: ресурсы и масштабирование</h2>
+  <ul>
+    <li><strong>requests</strong> — сколько гарантировано; по ним scheduler выбирает узел</li>
+    <li><strong>limits</strong> — потолок; превысил память → контейнер убит (OOMKilled)</li>
+    <li><strong>HPA</strong> — меняет число реплик по CPU, памяти или своим метрикам</li>
+    <li><strong>Cluster Autoscaler</strong> — добавляет и убирает узлы в облаке</li>
+  </ul>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent);min-width:0"><span class="flow-label">v1 v1 v1</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0"><span class="flow-label">v1 v1 v1 <span style="color:var(--accent-2)">v2</span></span><span class="flow-desc">новый готов?</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3);min-width:0"><span class="flow-label">v1 v1 <span style="color:var(--accent-2)">v2 v2</span></span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2);min-width:0"><span class="flow-label">v2 v2 v2</span></div>
+  </div>
+  <p class="flow-repeat">Rolling update без простоя · откат — <code>kubectl rollout undo</code></p>
+</section>
+
+<section class="slide">
+  <h2>Упаковка: Helm, Kustomize, GitOps</h2>
+  <div class="trio">
+    <div class="card"><h4>Helm</h4><p>Пакетный менеджер: шаблоны + <code>values.yaml</code>. <code>helm install postgresql bitnami/postgresql</code></p></div>
+    <div class="card"><h4>Kustomize</h4><p>Без шаблонов: база + наложения для staging и production. Встроен в <code>kubectl</code>.</p></div>
+    <div class="card"><h4>GitOps</h4><p>Argo CD, Flux: состояние кластера в git, контроллер сам приводит кластер к git.</p></div>
+  </div>
+  <blockquote>Тот же принцип желаемого состояния, но источник правды — репозиторий.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>Где запускать</h2>
+  <table>
+    <tr><th>Вариант</th><th>Примеры</th><th>Когда</th></tr>
+    <tr><td>Локально</td><td>k3d, kind, minikube, Docker Desktop</td><td>Учёба, тесты</td></tr>
+    <tr><td>Лёгкий кластер на VPS</td><td>k3s</td><td>Небольшой продакшен, свои серверы</td></tr>
+    <tr><td>Managed</td><td>GKE, EKS, AKS, Yandex Managed Kubernetes</td><td>Control plane — забота облака</td></tr>
+  </table>
+  <p>Managed k8s снимает самую сложную часть — control plane, etcd, обновления.</p>
+</section>
+
+<section class="slide">
+  <h2>Когда Kubernetes не нужен</h2>
+  <div class="compare">
+    <div class="card before">
+      <h4>Признаки, что рано</h4>
+      <ul>
+        <li>Один-два сервера, одна команда, умеренная нагрузка</li>
+        <li>Некому чинить кластер в 3 ночи</li>
+        <li>Десятки новых понятий, YAML, сеть, обновления кластера</li>
+      </ul>
+    </div>
+    <div class="card after">
+      <h4>Альтернативы</h4>
+      <ul>
+        <li><strong>Compose на VPS</strong> — MVP и небольшие проекты</li>
+        <li><strong>PaaS</strong> (Render, Fly.io, Railway) — без серверов</li>
+        <li><strong>Docker Swarm, Nomad</strong> — проще, чем k8s</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Kubernetes и ИИ-агенты</h2>
+  <ol class="trace-log">
+    <li><span class="tag action">Факт</span> агенты хорошо генерируют манифесты — и так же хорошо генерируют опасные</li>
+    <li><span class="tag plan">Проверять</span> пробы, requests/limits, <code>runAsNonRoot</code>, секреты, нет <code>latest</code></li>
+    <li><span class="tag obs">В CI</span> <code>kubectl apply --dry-run=server</code>, kubeconform, политики Kyverno</li>
+    <li><span class="tag danger">Никогда</span> не давайте агенту <code>kubectl</code> с правами на продакшен-кластер</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Лабораторная работа</h2>
+  <ol>
+    <li>Поднимите локальный кластер: <code>k3d cluster create slot</code></li>
+    <li>Манифесты «Slot»: Deployment + Service для API и фронтенда, StatefulSet или Helm-чарт для PostgreSQL, ConfigMap, Secret, Ingress</li>
+    <li>Rolling update на новую версию и откат</li>
+    <li>Удалите под — посмотрите, как он возвращается; масштабируйте API до 5 реплик</li>
+    <li><strong>С агентом:</strong> сгенерируйте манифесты из <code>compose.yaml</code>, затем проверьте вручную: пробы, лимиты, секреты</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Манифесты (или Helm-чарт) «Slot» в репозитории</li>
+    <li>Лог самовосстановления и rolling update</li>
+    <li>Список исправлений в манифестах агента</li>
+    <li>ADR «нужен ли Slot'у Kubernetes?» — с честным ответом</li>
+  </ul>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">→ 10</p>
+  <h2>Далее: Безопасность</h2>
+  <p>Kubernetes держит желаемое состояние через циклы согласования. Deployment + Service + Ingress — основа веб-приложения. Для маленького проекта Compose на VPS — нормальный выбор.</p>
+  <p><em>Перед выходом в интернет — смотрим на «Slot» глазами атакующего.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>

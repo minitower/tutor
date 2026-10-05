@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модуль 13 — Итоговый проект</title>
+<link rel="stylesheet" href="../../assets/deck.css">
+</head>
+<body>
+<div class="progress" id="deck-progress"></div>
+<main class="deck">
+
+<section class="slide" data-layout="title">
+  <p class="kicker">Модуль 13</p>
+  <h1>Итоговый проект</h1>
+  <h2>Запускаем: все слои курса в одном живом продукте</h2>
+  <p class="course">Архитектура современных приложений: от идеи до живого продукта</p>
+</section>
+
+<section class="slide">
+  <h2>План занятия</h2>
+  <ul>
+    <li>Цель итогового проекта и карта требований</li>
+    <li>Выбор проекта</li>
+    <li>План работ и контрольные точки</li>
+    <li>Как работать с агентами на всём проекте</li>
+    <li>Типичные провалы</li>
+    <li>Вопрос «×10 пользователей»</li>
+    <li>Защита и критерии оценки</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Цели обучения</h2>
+  <ul>
+    <li>Собрать все слои курса в один <strong>живой</strong> продукт</li>
+    <li>Защитить архитектурные решения с помощью ADR и цифр</li>
+    <li>Провести реальный запуск и разобрать его результаты</li>
+    <li>Объяснить, что изменится в архитектуре при росте</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Путь продукта: весь курс на одном слайде</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 1000 150" xmlns="http://www.w3.org/2000/svg" style="width:1000px">
+      <style>.jn{font-size:13px;font-weight:700;text-anchor:middle}.jm{font-size:11px;fill:var(--fg-dim);text-anchor:middle}</style>
+      <line x1="40" y1="60" x2="960" y2="60" stroke="var(--border)" stroke-width="4"/>
+      <g>
+        <circle cx="40" cy="60" r="14" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/><text class="jn" x="40" y="30" fill="var(--accent)">Идея</text><text class="jm" x="40" y="95">0</text>
+        <circle cx="132" cy="60" r="14" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/><text class="jn" x="132" y="16" fill="var(--accent)">Документация</text><text class="jm" x="132" y="95">1</text>
+        <circle cx="224" cy="60" r="14" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/><text class="jn" x="224" y="30" fill="var(--accent)">Фронтенд</text><text class="jm" x="224" y="95">2</text>
+        <circle cx="316" cy="60" r="14" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/><text class="jn" x="316" y="16" fill="var(--accent)">Бэкенд</text><text class="jm" x="316" y="95">3</text>
+        <circle cx="408" cy="60" r="14" fill="var(--card)" stroke="var(--accent-3)" stroke-width="3"/><text class="jn" x="408" y="30" fill="var(--accent-3)">API · данные</text><text class="jm" x="408" y="95">4–5</text>
+        <circle cx="500" cy="60" r="14" fill="var(--card)" stroke="var(--accent-3)" stroke-width="3"/><text class="jn" x="500" y="16" fill="var(--accent-3)">Скорость</text><text class="jm" x="500" y="95">6</text>
+        <circle cx="592" cy="60" r="14" fill="var(--card)" stroke="var(--accent-3)" stroke-width="3"/><text class="jn" x="592" y="30" fill="var(--accent-3)">ИИ</text><text class="jm" x="592" y="95">7</text>
+        <circle cx="684" cy="60" r="14" fill="var(--card)" stroke="var(--accent-3)" stroke-width="3"/><text class="jn" x="684" y="16" fill="var(--accent-3)">Контейнеры</text><text class="jm" x="684" y="95">8–9</text>
+        <circle cx="776" cy="60" r="14" fill="var(--card)" stroke="var(--accent-2)" stroke-width="3"/><text class="jn" x="776" y="30" fill="var(--accent-2)">Безопасность</text><text class="jm" x="776" y="95">10</text>
+        <circle cx="868" cy="60" r="14" fill="var(--card)" stroke="var(--accent-2)" stroke-width="3"/><text class="jn" x="868" y="16" fill="var(--accent-2)">Инфра</text><text class="jm" x="868" y="95">11</text>
+        <circle cx="960" cy="60" r="14" fill="var(--accent-2)" stroke="var(--accent-2)" stroke-width="3"/><text class="jn" x="960" y="30" fill="var(--accent-2)">Запуск</text><text class="jm" x="960" y="95">12</text>
+      </g>
+      <text x="500" y="135" text-anchor="middle" fill="var(--fg-dim)" font-size="13">каждый модуль добавил к «Slot» один слой</text>
+    </svg>
+  </div>
+  <table style="font-size:.92rem">
+    <tr><th>Модуль</th><th>Вопрос, на который вы ответили</th></tr>
+    <tr><td>0 · 1</td><td>Из каких слоёв состоит приложение? Что именно строим и как это проверить?</td></tr>
+    <tr><td>2 · 3 · 4 · 5</td><td>На чём строим фронт и бэк? Какой контракт держит API и как данные остаются корректными?</td></tr>
+    <tr><td>6 · 7</td><td>Достаточно ли быстро? Как встроить LLM безопасно и по карману?</td></tr>
+    <tr><td>8 · 9 · 10 · 11</td><td>Как упаковать, защитить и надёжно держать в интернете?</td></tr>
+    <tr><td>12</td><td>Как об этом узнают люди?</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Карта требований</h2>
+  <table style="font-size:.9rem">
+    <tr><th>Слой</th><th>Минимум для зачёта</th></tr>
+    <tr><td><strong>Документация</strong></td><td>Vision, user stories с критериями, BPMN главного процесса, C4 Container, OpenAPI, ADR, <code>AGENTS.md</code></td></tr>
+    <tr><td><strong>Фронтенд</strong></td><td>Публичная SEO-страница + интерактивная часть; ADR про фреймворк</td></tr>
+    <tr><td><strong>Бэкенд</strong></td><td>API с авторизацией, тестами, одной фоновой задачей</td></tr>
+    <tr><td><strong>API и данные</strong></td><td>Единый формат ошибок, пагинация, идемпотентная запись; ограничения БД против двойной записи; миграция без простоя</td></tr>
+    <tr><td><strong>Производительность</strong></td><td>Нагрузочный тест с p95 и RPS; одно исправленное узкое место</td></tr>
+    <tr><td><strong>ИИ</strong></td><td>Функция на LLM с таймаутами, лимитами, оценкой стоимости и eval</td></tr>
+    <tr><td><strong>Контейнеры</strong></td><td><code>docker compose up</code> поднимает всё; манифесты k8s — по желанию</td></tr>
+    <tr><td><strong>Безопасность</strong></td><td>Модель угроз, чек-лист OWASP, сканирование зависимостей и образов в CI</td></tr>
+    <tr><td><strong>Инфраструктура</strong></td><td>Свой домен, HTTPS, деплой из CI, проверенный бэкап, мониторинг</td></tr>
+    <tr><td><strong>Запуск</strong></td><td>SEO-основа, аналитика с целями, запуск минимум в одном канале, данные за неделю</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Выбор проекта</h2>
+  <div class="compare">
+    <div class="card after">
+      <h4>Хорошо</h4>
+      <ul>
+        <li><strong>«Slot»</strong> — многое уже готово из лабораторных</li>
+        <li>Своя идея сопоставимого размера: публичная страница, данные, процесс, аудитория, которую вы знаете</li>
+      </ul>
+    </div>
+    <div class="card before">
+      <h4>Плохо</h4>
+      <ul>
+        <li>«Соцсеть для всех», «маркетплейс»</li>
+        <li>Что-то, что нельзя показать за 10 минут</li>
+      </ul>
+    </div>
+  </div>
+  <blockquote>Маленький, но живой продукт лучше большого, но недоделанного.</blockquote>
+</section>
+
+<section class="slide">
+  <h2>План работ</h2>
+  <div class="flow-loop">
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Неделя 1</span><span class="flow-desc">документация, модель данных, скелеты</span><span class="flow-desc" style="color:var(--accent-2)">✓ docs/ согласован, API отвечает</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent)"><span class="flow-label">Неделя 2</span><span class="flow-desc">функциональность, API, тесты, ИИ</span><span class="flow-desc" style="color:var(--accent-2)">✓ главный сценарий end-to-end</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-3)"><span class="flow-label">Неделя 3</span><span class="flow-desc">контейнеры, безопасность, деплой</span><span class="flow-desc" style="color:var(--accent-2)">✓ живой HTTPS, CI зелёный</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="--c:var(--accent-2)"><span class="flow-label">Неделя 4</span><span class="flow-desc">скорость, SEO, аналитика, запуск</span><span class="flow-desc" style="color:var(--accent-2)">✓ неделя данных, отчёт</span></div>
+  </div>
+  <p>Каждая контрольная точка — короткая демонстрация преподавателю. Проблемы видны рано.</p>
+</section>
+
+<section class="slide">
+  <h2>Работа с агентами на всём проекте</h2>
+  <ol class="trace-log">
+    <li><span class="tag plan">День 1</span> <code>AGENTS.md</code>; обновлять при каждом архитектурном решении</li>
+    <li><span class="tag plan">Поток</span> агент работает от документации: user story → тест → код</li>
+    <li><span class="tag obs">Контроль</span> каждое изменение агента — через ревью и CI, как изменение человека</li>
+    <li><span class="tag danger">Граница</span> агенту — только тестовые секреты и staging; продакшен — ваши руки</li>
+    <li><span class="tag action">Журнал</span> что поручили, что получилось, что пришлось исправлять</li>
+  </ol>
+  <p><em>Журнал — часть защиты: он показывает, что вы управляли агентом, а не наоборот.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Типичные провалы</h2>
+  <table>
+    <tr><th>Провал</th><th>Как избежать</th></tr>
+    <tr><td>Красивая архитектура, ничего не работает</td><td>Сначала главный сценарий end-to-end, потом остальное</td></tr>
+    <tr><td>Деплой в последнюю ночь</td><td>Живой адрес к концу 3-й недели</td></tr>
+    <tr><td>Документация расходится с кодом</td><td>Обновлять в том же PR, что и код</td></tr>
+    <tr><td>Микросервисы и Kubernetes «потому что модно»</td><td>Монолит + Compose, если нет причины</td></tr>
+    <tr><td>Запуск без аналитики</td><td>Цели настроены до первого поста</td></tr>
+    <tr><td>Бэкап не проверяли</td><td>Восстановление — часть зачёта</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Вопрос «×10 пользователей»</h2>
+  <p>На защите спросят: <strong>что изменится, если пользователей станет в 10 раз больше?</strong></p>
+  <div class="compare">
+    <div class="card after">
+      <h4>Хороший ответ: цифры и первое узкое место</h4>
+      <ul>
+        <li>«Тест показал предел ~400 RPS на одном VPS; упрёмся в CPU API → вторая копия за балансировщиком, сессии уже в Redis»</li>
+        <li>«Следующей станет БД: управляемый PostgreSQL с репликой на чтение»</li>
+        <li>«Kubernetes пока не нужен: два сервера спокойно обслуживает Compose»</li>
+      </ul>
+    </div>
+    <div class="card before">
+      <h4>Плохой ответ</h4>
+      <p>«Перепишем на микросервисы и Rust».</p>
+      <p><em>Без цифр, без узкого места, без цены решения.</em></p>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Защита: 10 минут</h2>
+  <div class="svg-scene">
+    <svg viewBox="0 0 1000 110" xmlns="http://www.w3.org/2000/svg" style="width:1000px">
+      <style>.dt{font-size:13px;font-weight:700;fill:var(--bg);text-anchor:middle}.dm{font-size:11px;fill:var(--fg-dim);text-anchor:middle}</style>
+      <rect x="0" y="20" width="298" height="46" fill="var(--accent-2)"/><text class="dt" x="149" y="48">Живое демо</text><text class="dm" x="149" y="88">3 мин · главный сценарий</text>
+      <rect x="302" y="20" width="196" height="46" fill="var(--accent)"/><text class="dt" x="400" y="48">Архитектура</text><text class="dm" x="400" y="88">2 мин · C4 + 3 ADR</text>
+      <rect x="502" y="20" width="196" height="46" fill="var(--accent-3)"/><text class="dt" x="600" y="48">Что ломалось</text><text class="dm" x="600" y="88">2 мин</text>
+      <rect x="702" y="20" width="196" height="46" fill="var(--accent)"/><text class="dt" x="800" y="48">Запуск</text><text class="dm" x="800" y="88">2 мин · цифры</text>
+      <rect x="902" y="20" width="98" height="46" fill="var(--danger)"/><text class="dt" x="951" y="48">×10?</text><text class="dm" x="951" y="88">1 мин</text>
+    </svg>
+  </div>
+  <ol>
+    <li><strong>Живое демо</strong> на продакшен-адресе — главный сценарий от начала до конца</li>
+    <li><strong>Архитектура:</strong> C4 Container и три самых важных ADR</li>
+    <li><strong>Что ломалось</strong> во время курса и как вы это чинили</li>
+    <li><strong>Результаты запуска:</strong> посетители, конверсии, что бы вы изменили</li>
+    <li><strong>«×10 пользователей?»</strong> + вопросы</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Критерии оценки</h2>
+  <table>
+    <tr><th>Критерий</th><th>Вес</th></tr>
+    <tr><td>Продукт работает на продакшене, главный сценарий без ошибок</td><td><strong>25%</strong></td></tr>
+    <tr><td>Документация полная и соответствует коду</td><td>15%</td></tr>
+    <tr><td>Архитектурные решения обоснованы (ADR, цифры)</td><td>15%</td></tr>
+    <tr><td>Код, контракт API, целостность данных и тесты</td><td>15%</td></tr>
+    <tr><td>Инфраструктура и безопасность: CI, HTTPS, бэкап, мониторинг, OWASP</td><td>15%</td></tr>
+    <tr><td>Запуск: аналитика, канал, честный разбор результатов</td><td>15%</td></tr>
+  </table>
+  <p><em>Бонус: Kubernetes-манифесты, второй язык в бэкенде, сильный набор для eval ИИ-функции, интересный журнал агента.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Результат</h2>
+  <ul>
+    <li>Репозиторий: код, <code>docs/</code>, <code>AGENTS.md</code>, Dockerfile, <code>compose.yaml</code>, CI</li>
+    <li>Живой адрес продукта</li>
+    <li>Диаграмма архитектуры и ADR</li>
+    <li>Отчёт о запуске: каналы, цифры по воронке, выводы</li>
+    <li>Журнал работы с агентом</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Что дальше</h2>
+  <div class="trio">
+    <div class="card"><h4>Продукт</h4><p>Продолжайте развивать: у вас есть живые пользователи и метрики.</p></div>
+    <div class="card"><h4>Агенты</h4><p>Курс «Agentic Software Development» — как управлять агентами на сложных задачах.</p></div>
+    <div class="card"><h4>Углубления</h4><p>Kubernetes в продакшене, наблюдаемость, системный дизайн высоконагруженных систем.</p></div>
+  </div>
+  <p>Публикуйте: статья на Хабр о вашем запуске — тоже канал продвижения.</p>
+</section>
+
+<section class="slide" data-layout="divider">
+  <p class="num">✓</p>
+  <h2>Итоги курса</h2>
+  <p>Приложение = фронтенд + бэкенд + инфраструктура + люди, которые о нём узнали. Документация — контракт для людей и агентов. Технологии выбираем по аргументам и цифрам, а не по моде.</p>
+  <p><em>Простое решение, которое работает, лучше сложного «на вырост». Измеряйте всё.</em></p>
+</section>
+
+</main>
+<div class="hud">
+  <button class="nav-btn" data-nav="prev" aria-label="Назад">‹</button>
+  <span id="deck-counter" class="counter"></span>
+  <button class="nav-btn" data-nav="next" aria-label="Вперёд">›</button>
+  <button class="nav-btn" data-nav="fullscreen" aria-label="Полный экран">⛶</button>
+</div>
+<script src="../../assets/deck.js"></script>
+</body>
+</html>
