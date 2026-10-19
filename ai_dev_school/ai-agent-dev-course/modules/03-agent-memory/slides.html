@@ -69,7 +69,7 @@
   <table style="font-size:.85em;">
     <tr><th>Подход</th><th>Примеры</th><th>Плюсы</th><th>Минусы</th></tr>
     <tr><td><strong>Файлы</strong></td><td><code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>MEMORY.md</code>, <code>SOUL.md</code></td><td>прозрачно, в git, человек правит</td><td>не масштабируется, грузится в контекст целиком</td></tr>
-    <tr><td><strong>Гибридный поиск</strong></td><td>эмбеддинги + BM25 (RAG по памяти)</td><td>масштаб, поиск по смыслу</td><td>нужна инфраструктура, качество поиска</td></tr>
+    <tr><td><strong>Векторный поиск</strong></td><td>эмбеддинги + BM25 (RAG по памяти)</td><td>масштаб, поиск по смыслу</td><td>нужна инфраструктура, качество поиска</td></tr>
     <tr><td><strong>Граф знаний</strong></td><td>MCP Memory server; Zep/Graphiti</td><td>связи между сущностями</td><td>сложнее схема и поддержка</td></tr>
     <tr><td><strong>Многослойные системы</strong></td><td>TencentDB Agent Memory, Mem0, Letta (MemGPT)</td><td>извлечение, слои, ACL из коробки</td><td>ещё один сервис и риски приватности</td></tr>
   </table>
